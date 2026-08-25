@@ -20,6 +20,7 @@ from mathutils import Euler, Matrix, Vector
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import anchors  # noqa: E402
+import copy_safe  # noqa: E402
 import landmarks  # noqa: E402
 import world_shell  # noqa: E402
 
@@ -413,6 +414,85 @@ def build_emissive_layer(act, mats, col, name="FIELD_LED"):
     return obj
 
 
+# Other operating districts. The opening composition needs "another operating
+# Dancefloor region" in the background, and Fracture needs three districts that
+# are each active but disconnected — neither works with a single field.
+DISTRICTS = [
+    # (centre_x, centre_y, z, rows, cols, region)
+    (-72.0, 58.0, 6.0, 18, 22, 2),
+    (68.0, -54.0, 14.0, 16, 20, 4),
+    (54.0, 74.0, 22.0, 14, 16, 1),
+    (-84.0, -40.0, 10.0, 16, 18, 5),
+]
+
+
+def build_districts(act, mats, col):
+    """Smaller tile fields elsewhere in the hall, at their own elevations."""
+    state = ACT_STATES[act]
+    made = []
+
+    for idx, (cx, cy, cz, rows, cols, region) in enumerate(DISTRICTS):
+        mesh = bpy.data.meshes.new(f"DISTRICT_{idx:02d}")
+        led_mesh = bpy.data.meshes.new(f"DISTRICT_{idx:02d}_LED")
+        bm = bmesh.new()
+        led = bmesh.new()
+        colors = []
+
+        step = TILE + SEAM * (1 + state["fracture"] * 5)
+        for r in range(rows):
+            for c in range(cols):
+                x = cx + (c - (cols - 1) / 2) * step
+                y = cy + (r - (rows - 1) / 2) * step
+                bmesh.ops.create_cube(bm, size=1, matrix=(
+                    Matrix.Translation((x, y, cz + 0.08))
+                    @ Matrix.Diagonal((TILE * 0.96, TILE * 0.96, 0.16, 1.0))))
+
+                # Districts run their own low-level activity, independent of the
+                # main field — that is what makes them read as operating.
+                phase = fract(math.sin(r * 91.7 + c * 47.3 + idx * 13.1) * 43758.5453)
+                lit = 0.06 + (phase ** 5.0) * 0.7
+                base = REGION_COLORS[region % len(REGION_COLORS)]
+                rgb = tuple(min(1.0, ch * lit) for ch in base)
+
+                bmesh.ops.create_grid(led, x_segments=1, y_segments=1, size=TILE * 0.34,
+                                      matrix=Matrix.Translation((x, y, cz + 0.163)))
+                colors.extend([rgb] * 4)
+
+        bm.to_mesh(mesh)
+        bm.free()
+        led.to_mesh(led_mesh)
+        led.free()
+
+        layer = led_mesh.color_attributes.new(name="led", type="FLOAT_COLOR", domain="POINT")
+        for i, rgb in enumerate(colors[: len(led_mesh.vertices)]):
+            layer.data[i].color = (*rgb, 1.0)
+
+        body = bpy.data.objects.new(f"DISTRICT_{idx:02d}", mesh)
+        body.data.materials.append(mats["steel"])
+        col.objects.link(body)
+
+        glow = bpy.data.objects.new(f"DISTRICT_{idx:02d}_LED", led_mesh)
+        glow.data.materials.append(emissive_material())
+        col.objects.link(glow)
+
+        # The deck each district sits on.
+        deck = bmesh.new()
+        _pad = 4.0
+        bmesh.ops.create_cube(deck, size=1, matrix=(
+            Matrix.Translation((cx, cy, cz - 0.9))
+            @ Matrix.Diagonal((cols * step + _pad, rows * step + _pad, 1.8, 1.0))))
+        deck_mesh = bpy.data.meshes.new(f"DISTRICT_{idx:02d}_DECK")
+        deck.to_mesh(deck_mesh)
+        deck.free()
+        plate = bpy.data.objects.new(f"DISTRICT_{idx:02d}_DECK", deck_mesh)
+        plate.data.materials.append(mats["matte"])
+        col.objects.link(plate)
+
+        made.extend([body, glow, plate])
+
+    return made
+
+
 def build_underfloor(mats, col):
     """Infrastructure the return path travels through."""
     span = TILE * ROWS * 0.5
@@ -561,10 +641,13 @@ def build(act="ACT_III_THE_PATCH"):
     place_hero_tile(module, act)
     build_field(act, mats, world_col)
     build_emissive_layer(act, mats, world_col)
+    build_districts(act, mats, world_col)
     build_underfloor(mats, world_col)
     build_towers(act, mats, world_col)
     build_lighting(lights)
     made = build_cameras(cams)
+    # Negative space is authored, not discovered: these mark where copy lands.
+    copy_safe.build()
 
     scene = bpy.context.scene
     scene.camera = made["CAM_D_ROAD"]

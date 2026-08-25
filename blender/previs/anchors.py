@@ -75,50 +75,80 @@ TIMING = {
     "SETTLE": (1.0, "close"),
 }
 
-# Desktop: cinematic maximum. Wide lateral compositions — the visitor travels
-# ACROSS the field.
+# ---------------------------------------------------------------------------
+# Camera compositions
+#
+# Re-authored against the built world. The previous set was placed in an empty
+# void before any architecture existed, which left several anchors inside
+# geometry — the desktop City anchor framed the underside of the ceiling slab.
+#
+# Landmarks the shots are composed against, in Blender coordinates:
+#     SPINE        (-14, -30)  rising to  88
+#     BRIDGE       (  0,  38)  deck at    22
+#     BEACON       ( 96, -84)  rising to 146
+#     GLASS_WALL   (  0, -46)  to         40
+#     OBSERVATORY  ( 30,  -8)  deck at    40
+#     OCULUS       centred, half-extent   34
+#
+# Every shot is checked against the three-layer rule: something close enough to
+# parallax, the narrative action in the midground, and evidence the world keeps
+# going behind it.
+# ---------------------------------------------------------------------------
+
 DESKTOP = {
-    "HERO":        dict(position=(1.74, 0.90, 1.74), target=(0.52, 0.10, 0.52), fov=30),
-    "HERO_PULL":   dict(position=(2.4, 1.6, 6.5),    target=(0, 0, 0),       fov=40),
-    "FRACTURE":    dict(position=(-9, 4.2, 12),      target=(1.5, 0.4, 0),   fov=46),
-    "ROAD":        dict(position=(-16, 3.1, 4),      target=(-2, 1.2, -2),   fov=42),
-    "GUIDANCE":    dict(position=(-4, 2.4, -8),      target=(-4, 3.2, -22),  fov=38),
-    "CAPTURE":     dict(position=(-2, -2.6, -26),    target=(3, -1.4, -34),  fov=50),
-    "MODEL":       dict(position=(6, 6.5, -30),      target=(0, 0.5, -18),   fov=44),
-    "OBSERVATORY": dict(position=(2, 14, -6),        target=(0, 0.5, -20),   fov=40),
-    "CITY":        dict(position=(10, 46, -6),       target=(0, 0, -14),     fov=52),
-    "SETTLE":      dict(position=(4, 62, 30),        target=(0, 0, -8),      fov=48),
+    # FG the hero tile and its frame; MG columns and the Spine; BG the Glass Wall
+    # and the district beyond it. Copy sits left, over the darker wall mass.
+    "HERO":        dict(position=(2.0, 2.4, -6.0),   target=(48.0, 5.6, -36.0),  fov=38),
+    # Pull back and up: the field resolves, the ceiling and columns arrive.
+    "HERO_PULL":   dict(position=(15.0, 7.5, -27.0), target=(0.0, 1.5, -2.0),    fov=42),
+    # Three districts at different depths, the incomplete Bridge crossing above.
+    "FRACTURE":    dict(position=(-31.0, 21.0, -58.0), target=(1.0, 6.5, -19.0), fov=46),
+    # Wide, horizontal, analytical. Terraces layer the midground.
+    "ROAD":        dict(position=(-47.0, 8.5, -11.0), target=(7.0, 2.0, 5.0),    fov=44),
+    # Vertical and directional: down the corridor toward the Spine, which rises.
+    "GUIDANCE":    dict(position=(2.0, 3.0, -24.0),  target=(-5.0, 11.0, 22.0),  fov=38),
+    # Underfloor. Conduits pass close to camera; infrastructure recedes far below.
+    "CAPTURE":     dict(position=(0.5, -9.0, -18.0),  target=(0.0, -6.0, 20.0),  fov=52),
+    # Rising back through the plane as the systems align. Everything visited is visible.
+    "MODEL":       dict(position=(27.0, 30.0, -46.0), target=(0.0, 10.0, -4.0),  fov=44),
+    # On the Observatory deck, looking out over the system operating below.
+    "OBSERVATORY": dict(position=(31.0, 44.0, -5.0),  target=(2.0, 7.0, 19.0),   fov=40),
+    # Through the oculus. The hall, its districts and the Beacon all read at once.
+    "CITY":        dict(position=(12.0, 122.0, -31.0), target=(0.0, 20.0, 5.0),  fov=52),
+    # The world recedes but never stops. Footer content enters over this.
+    "SETTLE":      dict(position=(0.0, 168.0, -62.0), target=(0.0, 18.0, 0.0),   fov=46),
 }
 
-# Tablet: cinematic compressed. Closer, less lateral travel — the visitor moves
-# THROUGH the environment.
 TABLET = {
-    "HERO":        dict(position=(1.62, 0.84, 1.62), target=(0.52, 0.10, 0.52), fov=34),
-    "HERO_PULL":   dict(position=(1.5, 1.4, 5.2),    target=(0, 0, 0),       fov=44),
-    "FRACTURE":    dict(position=(-5, 3.6, 9),       target=(0.8, 0.4, 0),   fov=50),
-    "ROAD":        dict(position=(-9, 2.8, 3),       target=(-1.5, 1.1, -3), fov=46),
-    "GUIDANCE":    dict(position=(-3, 2.2, -7),      target=(-3, 3, -20),    fov=42),
-    "CAPTURE":     dict(position=(-1.5, -2.4, -24),  target=(2, -1.3, -32),  fov=54),
-    "MODEL":       dict(position=(4, 5.6, -28),      target=(0, 0.5, -18),   fov=48),
-    "OBSERVATORY": dict(position=(1.5, 12, -5),      target=(0, 0.5, -19),   fov=44),
-    "CITY":        dict(position=(6, 40, -8),        target=(0, 0, -15),     fov=56),
-    "SETTLE":      dict(position=(2, 54, 22),        target=(0, 0, -9),      fov=52),
+    "HERO":        dict(position=(1.8, 2.3, -5.5),   target=(42.0, 5.5, -32.0),  fov=42),
+    "HERO_PULL":   dict(position=(11.0, 6.5, -21.0), target=(0.0, 1.5, -2.0),    fov=46),
+    "FRACTURE":    dict(position=(-22.0, 17.0, -44.0), target=(1.0, 6.0, -16.0), fov=50),
+    "ROAD":        dict(position=(-34.0, 7.5, -9.0), target=(5.0, 2.0, 4.0),     fov=48),
+    "GUIDANCE":    dict(position=(1.8, 2.8, -23.0),  target=(-4.5, 11.0, 21.0),  fov=42),
+    "CAPTURE":     dict(position=(0.4, -8.6, -16.0), target=(0.0, -6.0, 18.0),   fov=56),
+    "MODEL":       dict(position=(21.0, 26.0, -38.0), target=(0.0, 9.0, -3.0),   fov=48),
+    "OBSERVATORY": dict(position=(31.0, 43.0, -3.0), target=(3.0, 8.0, 17.0),    fov=44),
+    "CITY":        dict(position=(9.0, 112.0, -26.0), target=(0.0, 20.0, 4.0),   fov=56),
+    "SETTLE":      dict(position=(0.0, 152.0, -52.0), target=(0.0, 18.0, 0.0),   fov=50),
 }
 
-# Mobile: cinematic focused. DEPTH rather than width — this is critical. The
-# camera travels forward and upward between a few chosen tiles, and every
-# position must leave deliberate negative space for copy.
 MOBILE = {
-    "HERO":        dict(position=(1.52, 0.96, 1.52), target=(0.52, 0.10, 0.52), fov=40),
-    "HERO_PULL":   dict(position=(0.4, 0.9, 3.0),    target=(0, 0.1, -1.2),  fov=52),
-    "FRACTURE":    dict(position=(0, 1.5, 5.5),      target=(0, 0.3, -3),    fov=58),
-    "ROAD":        dict(position=(0.6, 1.9, 1.5),    target=(0.2, 0.9, -6),  fov=54),
-    "GUIDANCE":    dict(position=(0, 1.7, -6),       target=(0, 2.6, -19),   fov=48),
-    "CAPTURE":     dict(position=(0, -2.1, -22),     target=(0.4, -1.2, -31), fov=60),
-    "MODEL":       dict(position=(1.2, 4.4, -26),    target=(0, 0.6, -19),   fov=54),
-    "OBSERVATORY": dict(position=(0.5, 9.5, -8),     target=(0, 0.6, -21),   fov=50),
-    "CITY":        dict(position=(1.5, 34, -12),     target=(0, 0, -17),     fov=62),
-    "SETTLE":      dict(position=(0, 46, 14),        target=(0, 0, -10),     fov=58),
+    # Close on the tile with the Spine behind it; sky-side of frame stays open.
+    "HERO":        dict(position=(1.6, 2.2, -5.0),   target=(34.0, 5.6, -28.0),  fov=48),
+    # Forward, not sideways: the field opens ahead while the frame stays tall.
+    "HERO_PULL":   dict(position=(4.0, 4.2, -13.0),  target=(0.0, 2.4, 2.0),     fov=52),
+    # Between districts rather than above them, gaps receding into depth.
+    "FRACTURE":    dict(position=(-6.0, 9.0, -30.0), target=(-2.0, 5.0, 2.0),    fov=58),
+    # Move between coverage structures, terrain running away from camera.
+    "ROAD":        dict(position=(-16.0, 6.0, -6.0), target=(-2.0, 2.4, 16.0),   fov=54),
+    # Straight down the corridor; the Spine gives the shot its vertical.
+    "GUIDANCE":    dict(position=(1.5, 2.6, -22.0),  target=(-4.0, 12.0, 20.0),  fov=48),
+    "CAPTURE":     dict(position=(0.0, -8.2, -13.0), target=(0.0, -5.5, 16.0),   fov=60),
+    # Rise vertically through architecture before the system below is revealed.
+    "MODEL":       dict(position=(12.0, 22.0, -28.0), target=(2.0, 8.0, -2.0),   fov=54),
+    "OBSERVATORY": dict(position=(30.0, 42.5, -1.0), target=(6.0, 9.0, 15.0),    fov=50),
+    "CITY":        dict(position=(5.0, 96.0, -20.0), target=(0.0, 22.0, 3.0),    fov=62),
+    "SETTLE":      dict(position=(0.0, 130.0, -42.0), target=(0.0, 18.0, 0.0),   fov=56),
 }
 
 CLASSES = {

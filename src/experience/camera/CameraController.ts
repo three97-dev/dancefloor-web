@@ -34,6 +34,22 @@ export class CameraController {
 	#pointer = { x: 0, y: 0 };
 	#pointerSmoothed = { x: 0, y: 0 };
 
+	/**
+	 * Lagged progress, so the camera arrives at a position rather than snapping
+	 * to it. This is what makes the move feel physically operated instead of
+	 * scrubbed: acceleration and deceleration come out of the lag, not out of
+	 * easing curves baked into the spline.
+	 */
+	#smoothedProgress = 0;
+	#progressVelocity = 0;
+
+	/** Elapsed time, for the idle drift. */
+	#elapsed = 0;
+	/** Seconds since progress last changed meaningfully. */
+	#still = 0;
+
+	#drift = new Vector3();
+
 	constructor(view: ViewportState) {
 		this.#composition = COMPOSITIONS[view.camera];
 		this.camera = new PerspectiveCamera(this.#composition.keyframes[0].fov, view.aspect, 0.05, 900);
@@ -72,10 +88,38 @@ export class CameraController {
 	 * @param dt seconds since last frame, for pointer smoothing
 	 */
 	update(progress: number, dt: number) {
-		const t = Math.min(1, Math.max(0, progress));
+		const target = Math.min(1, Math.max(0, progress));
+		this.#elapsed += dt;
+
+		// Critically damped spring toward the scroll position. The camera has
+		// mass: it takes a moment to get moving and a moment to settle, and it
+		// never overshoots into a bounce.
+		const stiffness = 42;
+		const damping = 2 * Math.sqrt(stiffness);
+		const accel = (target - this.#smoothedProgress) * stiffness - this.#progressVelocity * damping;
+		this.#progressVelocity += accel * dt;
+		this.#smoothedProgress += this.#progressVelocity * dt;
+
+		const moving = Math.abs(target - this.#smoothedProgress) > 0.0004;
+		this.#still = moving ? 0 : this.#still + dt;
+
+		const t = Math.min(1, Math.max(0, this.#smoothedProgress));
 
 		this.#positionCurve.getPoint(t, this.camera.position);
 		this.#targetCurve.getPoint(t, this.#target);
+
+		// Idle drift. When scrolling stops the composition must not freeze into
+		// a screenshot, so the camera keeps breathing — far below the threshold
+		// where it would read as a bob.
+		const settled = Math.min(1, this.#still / 0.9);
+		if (settled > 0) {
+			const a = this.#elapsed * 0.11;
+			const b = this.#elapsed * 0.073;
+			this.#drift.set(Math.sin(a) * 0.05, Math.sin(b * 1.31) * 0.035, Math.cos(a * 0.87) * 0.05);
+			this.camera.position.addScaledVector(this.#drift, settled);
+			// A few hundredths of a degree of rotational breathing.
+			this.#target.y += Math.sin(b) * 0.03 * settled;
+		}
 
 		const parallax = this.#composition.parallax;
 		if (parallax > 0) {
@@ -90,6 +134,11 @@ export class CameraController {
 		this.camera.fov = interpolateFov(this.#composition.keyframes, t);
 		this.camera.updateProjectionMatrix();
 		this.camera.lookAt(this.#target);
+	}
+
+	/** True while the camera is settled and only drifting. */
+	get idle() {
+		return this.#still > 0.9;
 	}
 
 	/** For the debug overlay and the no-WebGL still picker. */

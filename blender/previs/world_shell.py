@@ -26,8 +26,13 @@ HALL = {
     "half_x": 100.0,
     "half_y": 100.0,
     "floor_z": -4.0,
-    "ceiling_z": 66.0,
+    # Tall enough that Act VII can climb without meeting a lid. The ceiling is
+    # not a ceiling everywhere: an oculus over the fabric lets the camera leave.
+    "ceiling_z": 96.0,
 }
+
+# The opening the City ascent rises through. Half-extent, centred on the fabric.
+OCULUS_HALF = 34.0
 
 # The Dancefloor fabric occupies the centre; architecture surrounds it.
 FABRIC_HALF = 24.0
@@ -133,19 +138,37 @@ def build_ceiling_architecture(mats, col):
     z = HALL["ceiling_z"]
     hx, hy = HALL["half_x"], HALL["half_y"]
 
-    # Coffered slab.
+    # Coffered slab, split around the oculus so the opening stays clear.
+    o = OCULUS_HALF
     for gx in range(-4, 5):
-        _box(bm, (2.2, hy * 2, 2.6), (gx * 24.0, 0, z + 1.3))
+        x = gx * 24.0
+        if abs(x) < o:
+            # Beam runs only outside the opening.
+            for sign in (-1, 1):
+                length = hy - o
+                _box(bm, (2.2, length, 2.6), (x, sign * (o + length / 2), z + 1.3))
+        else:
+            _box(bm, (2.2, hy * 2, 2.6), (x, 0, z + 1.3))
     for gy in range(-4, 5):
-        _box(bm, (hx * 2, 2.2, 2.6), (0, gy * 24.0, z + 1.3))
+        y = gy * 24.0
+        if abs(y) < o:
+            for sign in (-1, 1):
+                length = hx - o
+                _box(bm, (length, 2.2, 2.6), (sign * (o + length / 2), y, z + 1.3))
+        else:
+            _box(bm, (hx * 2, 2.2, 2.6), (0, y, z + 1.3))
 
-    # Long openings that let light down into the hall.
-    for i in range(-2, 3):
-        _box(bm, (10, hy * 1.4, 0.6), (i * 34.0, 0, z + 3.0))
+    # A thickened rim around the opening, so it reads as built rather than missing.
+    for sign in (-1, 1):
+        _box(bm, (o * 2 + 8, 4.0, 5.0), (0, sign * (o + 2), z + 2.5))
+        _box(bm, (4.0, o * 2 + 8, 5.0), (sign * (o + 2), 0, z + 2.5))
 
-    # Structural fins hanging below the slab.
+    # Structural fins hanging below the slab, outside the opening.
     for i in range(-6, 7):
-        _box(bm, (0.8, hy * 1.7, 5.0), (i * 15.0, 0, z - 2.5))
+        x = i * 15.0
+        if abs(x) < o + 4:
+            continue
+        _box(bm, (0.8, hy * 1.7, 5.0), (x, 0, z - 2.5))
     return _mesh("CEILING_ARCHITECTURE", bm, mats["clay_light"], col)
 
 
@@ -226,6 +249,38 @@ def build_openings(mats, col):
     return _mesh("OPENINGS", bm, mats["clay_light"], col)
 
 
+def build_mid_terraces(mats, col):
+    """
+    Terraces between the fabric edge and the perimeter.
+
+    Without these the eye jumps straight from the Dancefloor to a flat wall,
+    which is the layering failure the brief calls out: every composition needs a
+    midground, not just a subject and a backdrop.
+    """
+    bm = bmesh.new()
+    for ring, (radius, height, count, depth) in enumerate((
+        (38.0, 3.0, 10, 12.0),
+        (56.0, 9.0, 12, 14.0),
+        (76.0, 17.0, 14, 16.0),
+    )):
+        for i in range(count):
+            angle = (i / count) * math.tau + ring * 0.31
+            x, y = math.cos(angle) * radius, math.sin(angle) * radius
+            width = depth * (1.5 + _fract(math.sin(i * 7.3 + ring) * 43758.5453))
+            _box(bm, (width, depth, 1.4), (x, y, height),
+                 rotation=Euler((0, 0, angle + math.pi / 2)))
+            # Supports, so a terrace is held up rather than floating.
+            for sx in (-0.34, 0.34):
+                _box(bm, (1.6, 1.6, height - HALL["floor_z"]),
+                     (x + math.cos(angle + math.pi / 2) * width * sx,
+                      y + math.sin(angle + math.pi / 2) * width * sx,
+                      HALL["floor_z"] + (height - HALL["floor_z"]) / 2))
+            # Balustrade catches light and gives the silhouette an edge.
+            _box(bm, (width, 0.4, 1.2), (x, y, height + 1.3),
+                 rotation=Euler((0, 0, angle + math.pi / 2)))
+    return _mesh("MID_TERRACES", bm, mats["clay_light"], col)
+
+
 def build_far_geometry(mats, col):
     """Deep background plates that dissolve into haze in the final grade."""
     bm = bmesh.new()
@@ -255,6 +310,7 @@ def build(mats, parent_collection=None):
         "CEILING_ARCHITECTURE": build_ceiling_architecture(mats, col),
         "DISTANT_PLATFORMS": build_distant_platforms(mats, col),
         "BACKGROUND_TOWERS": build_background_towers(mats, col),
+        "MID_TERRACES": build_mid_terraces(mats, col),
         "BRIDGES": build_bridges(mats, col),
         "SHAFTS": build_shafts(mats, col),
         "OPENINGS": build_openings(mats, col),

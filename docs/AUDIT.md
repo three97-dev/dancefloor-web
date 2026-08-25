@@ -313,3 +313,71 @@ across every frame since load.
 Actual figures after the fix: **20 draw calls, 58 k triangles**. Instancing is
 working correctly. Worth recording because the bad number would have justified a
 pointless optimisation pass on a scene that does not need one.
+
+---
+
+## 10. Resolution pass — cameras re-authored against the world
+
+Closing out §9's findings.
+
+### 10.1 The hall now opens
+
+The ceiling was a lid at 66 m, so Act VII's ascent collided with it. The volume
+is now 100 m tall with a 68 m oculus cut over the fabric and a thickened rim, so
+the City reveal exits *through* an opening — a change of vantage, which is what
+§52 describes, rather than a camera pressed against a slab.
+
+### 10.2 Midground added
+
+The eye jumped from the fabric edge straight to a flat wall. Three rings of
+terraces now sit at 38 m, 56 m and 76 m at rising heights, each with supports and
+a balustrade so they read as built and catch an edge of light. Four secondary
+Dancefloor districts sit elsewhere in the hall at their own elevations, running
+their own low-level activity — which is what §30 means by *another operating
+Dancefloor region* in the background, and what §33 needs for three districts that
+are each active but disconnected.
+
+### 10.3 Every anchor re-authored
+
+All 30 anchors were re-placed against real architecture, composed against known
+landmarks rather than empty space. The desktop City anchor now sits above the
+oculus looking down into the operating hall.
+
+The hero took four passes and is worth recording, because the failure modes were
+instructive:
+
+| Pass | Result |
+| --- | --- |
+| 1 | Grazing the floor plane — tiles filled 95% of frame, no architecture |
+| 2 | Overcorrected: aimed into the Glass Wall, a flat slab head-on |
+| 3 | Observatory support core dead centre, floor down to 10% of frame |
+| 4 | Pitch solved arithmetically rather than guessed — floor holds 40% |
+
+The lesson is in pass 4. The share of frame below the horizon is
+`(fov/2 − pitch) / fov`, so wanting the immediate plane to hold 40% of the frame
+fixes the pitch at 3.8° for a 38° lens. Three passes were spent guessing a number
+that one line of trigonometry gives exactly.
+
+### 10.4 Copy-safe anchors exist
+
+`WEB_COPY_<ANCHOR>_<CLASS>` empties are generated for every copy-bearing anchor
+across all three viewport classes, positioned in camera-relative space and sized
+to the copy block. Capture has none, deliberately — §43's no-copy moment.
+
+### 10.5 Camera character
+
+The camera now has mass: a critically damped spring on progress gives
+acceleration and deceleration out of physics rather than baked easing, and an
+idle drift keeps the composition from freezing into a screenshot when scrolling
+stops. Well under the threshold where it would read as a bob.
+
+### Still open
+
+- **Composition polish.** A structural column still lands near the centre of some
+  frames, and the terrace rings read as concentric. §97 places per-act responsive
+  tuning in Phase 7; this is that work, not greybox work.
+- **Act I illumination.** §30 wants only one or a few modules actively lit at
+  rest. Greybox lighting washes this out by design, so it can only be judged once
+  final materials land in Phase 8.
+- **Product surfaces, the three questions, no-copy moment, FAQ scroll handoff,
+  final brand resolution.** Untouched — all downstream of the world.
