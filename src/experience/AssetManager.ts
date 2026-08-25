@@ -15,9 +15,19 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Group } from 'three';
 
 /** Load priority. Lower numbers arrive first. */
-export type AssetGroup = 'core' | 'upper' | 'landmarks' | 'far';
+export type AssetGroup = 'core' | 'upper' | 'districts' | 'underfloor' | 'far';
 
-export const LOAD_ORDER: readonly AssetGroup[] = ['core', 'upper', 'landmarks', 'far'];
+/**
+ * Priority order. The spaces the visitor is standing in first, then the rooms
+ * they travel to, then back-of-house, then the distant extensions.
+ */
+export const LOAD_ORDER: readonly AssetGroup[] = [
+	'core',
+	'upper',
+	'districts',
+	'underfloor',
+	'far'
+];
 
 export interface LoadedGroup {
 	readonly group: AssetGroup;

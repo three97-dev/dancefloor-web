@@ -21,8 +21,7 @@ from mathutils import Euler, Matrix, Vector
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import anchors  # noqa: E402
 import copy_safe  # noqa: E402
-import landmarks  # noqa: E402
-import world_shell  # noqa: E402
+import venue  # noqa: E402
 
 # --- world constants, mirroring src/content/scene-data.ts -------------------
 
@@ -631,11 +630,9 @@ def build(act="ACT_III_THE_PATCH"):
     cams = collection("CAMERAS")
     lights = collection("LIGHTING")
 
-    # The world first: the Dancefloor is one manifestation of a larger system,
-    # not the environment itself.
-    grey = world_shell.clay_materials()
-    world_shell.build(grey)
-    landmarks.build(grey)
+    # The venue first. The Dancefloor is the operating fabric running through
+    # one designed building, not an object with scenery arranged around it.
+    _spaces, venue_mats = venue.build(greybox=GREYBOX)
 
     module = build_tile_module(mats, modules)
     place_hero_tile(module, act)

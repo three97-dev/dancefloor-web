@@ -34,17 +34,29 @@ export class LightingSystem {
 	/** The floor's own spill. */
 	#floor: PointLight | null = null;
 
+	/** Visible physical sources built into the architecture. */
+	#practicals: PointLight[] = [];
+
 	#shadowTint = new Color();
 
+	#practical(color: string, x: number, y: number, z: number, intensity: number, distance: number) {
+		const light = new PointLight(color, intensity, distance, 2);
+		light.position.set(x, y, z);
+		return light;
+	}
+
 	constructor(scene: Scene, quality: QualitySettings) {
-		// Sky/ground hemisphere carries the ambient colour field, which is the
-		// 35-45% of the frame that should read as coloured environment.
-		this.#hemi = new HemisphereLight('#3a4a9e', '#241a3d', 2.4);
+		// LAYER 1 — architectural ambient light. This is what makes the building
+		// legible, and it has to be strong enough that a photographer could
+		// expose the venue with the Dancefloor switched off. Once the world is a
+		// real enclosed building rather than objects under an open sky, the
+		// environment can no longer supply this on its own.
+		this.#hemi = new HemisphereLight('#3a4a9e', '#241a3d', 4.2);
 		scene.add(this.#hemi);
 
 		// Deliberately not zero: this is what keeps shadowed architecture legible
 		// and stops the frame resolving as black-plus-neon.
-		this.#ambient = new AmbientLight('#2b3566', 1.3);
+		this.#ambient = new AmbientLight('#2b3566', 2.4);
 		scene.add(this.#ambient);
 
 		this.#key = new DirectionalLight('#31e0f0', 1.5);
@@ -74,6 +86,31 @@ export class LightingSystem {
 			this.#floor = new PointLight('#31e0f0', 18, 90, 2);
 			this.#floor.position.set(0, 1.6, 0);
 			scene.add(this.#floor);
+
+			// LAYER 2 — integrated architectural light. Emissive materials do not
+			// illuminate anything in WebGL, so the building's own coves, reveals
+			// and canopy panels get approximated light contributions. Without
+			// these the architecture is visible but not lit *by itself*.
+			this.#practicals = [
+				// Under the canopy, washing the central hall.
+				this.#practical('#31e0f0', 0, 30, 0, 140, 320),
+				// Warm hospitality light at the arrival threshold, so not every
+				// source in the venue is blue or magenta. Arrival sits at Blender
+				// y = +72, which is -Z here — the axis flip is easy to get wrong
+				// and puts the light on the opposite side of the building.
+				this.#practical('#ffc27a', 0, 4.5, -66, 90, 110),
+				// Second warm source deeper in the threshold, washing the soffit.
+				this.#practical('#ffb877', 0, 5.5, -46, 70, 90),
+				// Fill inside the central hall at gallery height.
+				this.#practical('#4a63c8', 0, 12, -10, 120, 200),
+				// A warm pool at the Observatory deck.
+				this.#practical('#ffb877', 0, 32, 74, 55, 70),
+				// Cool wash down the Guidance canyon.
+				this.#practical('#a55cf5', 96, 18, 0, 90, 140),
+				// Cyan over the coverage terrace.
+				this.#practical('#31e0f0', -96, 22, 0, 90, 140)
+			];
+			for (const light of this.#practicals) scene.add(light);
 		}
 	}
 
@@ -97,8 +134,8 @@ export class LightingSystem {
 
 		// The city reveal is the most luminous state; the observatory is calmer.
 		const lift = 1 + state.city * 0.5 - state.alignment * 0.12;
-		this.#hemi.intensity = 2.4 * lift;
-		this.#ambient.intensity = 1.3 * lift;
+		this.#hemi.intensity = 4.2 * lift;
+		this.#ambient.intensity = 2.4 * lift;
 		this.#key.intensity = 1.5 * lift;
 		this.#counter.intensity = 0.9 * lift;
 
@@ -115,7 +152,7 @@ export class LightingSystem {
 	}
 
 	dispose() {
-		for (const light of [this.#hemi, this.#ambient, this.#key, this.#counter, this.#under, this.#floor]) {
+		for (const light of [this.#hemi, this.#ambient, this.#key, this.#counter, this.#under, this.#floor, ...this.#practicals]) {
 			light?.removeFromParent();
 		}
 	}

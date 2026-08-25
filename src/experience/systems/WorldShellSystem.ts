@@ -18,7 +18,6 @@ import {
 	type Object3D,
 	type Scene
 } from 'three';
-import { SURFACES } from '../palette';
 import type { AssetGroup, LoadedGroup } from '../AssetManager';
 import type { QualitySettings } from '../quality';
 import type { ExperienceState } from '../scroll/ExperienceTimeline';
@@ -39,15 +38,36 @@ interface SurfaceSpec {
 	emissiveScale?: number;
 }
 
+/**
+ * The locked material library, keyed by the Blender material it replaces.
+ *
+ * Eight primary families, assigned by architectural role rather than object by
+ * object. All medium-value: coloured light cannot register on near-black
+ * surfaces, and an environment where every material is black resolves as
+ * black-plus-neon however good the lighting rig is.
+ */
 const SURFACE_BY_MATERIAL: Record<string, SurfaceSpec> = {
-	GREY_clay: { color: SURFACES.darkSilver, roughness: 0.68, metalness: 0.08 },
-	GREY_clay_dark: { color: SURFACES.blueGrey, roughness: 0.62, metalness: 0.2 },
-	GREY_clay_light: { color: new Color('#7c8694'), roughness: 0.5, metalness: 0.14, emissive: 'haze', emissiveScale: 0.35 },
-	// Backlit masses and hidden linear lights: the architecture lights itself.
-	GREY_glow: { color: SURFACES.blueGrey, roughness: 0.4, metalness: 0.05, emissive: 'key', emissiveScale: 3.4 }
+	// Major structural mass. Medium-dark graphite, never pure black.
+	DF_concrete: { color: new Color('#5c6470'), roughness: 0.82, metalness: 0.02 },
+	// Frames, structure, bridge elements, mullions.
+	DF_steel: { color: new Color('#4b5361'), roughness: 0.44, metalness: 0.82 },
+	// Barriers, partitions, facade volumes.
+	DF_glass: { color: new Color('#6f8296'), roughness: 0.12, metalness: 0.0 },
+	// Diffused light sources and architectural light fins.
+	DF_acrylic: { color: new Color('#8496a8'), roughness: 0.5, metalness: 0.0, emissive: 'haze', emissiveScale: 0.5 },
+	// Hospitality-scale surfaces. Receives coloured reflection well.
+	DF_stone: { color: new Color('#525c6b'), roughness: 0.28, metalness: 0.05 },
+	// Refined trims, ceiling details, mechanical parts.
+	DF_aluminium: { color: new Color('#7d8794'), roughness: 0.34, metalness: 0.9 },
+	// Computational volumes; light scatters through them.
+	DF_resin: { color: new Color('#6b7a90'), roughness: 0.42, metalness: 0.0, emissive: 'counter', emissiveScale: 0.8 },
+	// Infrastructure layers. More utilitarian, same core palette.
+	DF_technical: { color: new Color('#464e5b'), roughness: 0.72, metalness: 0.3 },
+	// Integrated architectural light: coves, reveals, canopy panels, rails.
+	DF_luminous: { color: new Color('#93a5b8'), roughness: 0.38, metalness: 0.0, emissive: 'key', emissiveScale: 3.2 }
 };
 
-const FALLBACK: SurfaceSpec = { color: SURFACES.coolConcrete, roughness: 0.7, metalness: 0.12 };
+const FALLBACK: SurfaceSpec = { color: new Color('#5c6470'), roughness: 0.78, metalness: 0.05 };
 
 /** Groups that only supply silhouette can drop out first under pressure. */
 const OPTIONAL: readonly AssetGroup[] = ['far'];

@@ -559,3 +559,133 @@ decimals.
 
 Both are environmental, not tuning. They are the next piece of world-building
 rather than a lighting adjustment.
+
+---
+
+## 13. The corrective pass — one building, not scenes with objects
+
+*3D Environment Corrective Execution Prompt v2 — Vegas Mega-Club × Luminous
+Cyberpunk × Photoreal Architectural World* (53pp).
+
+### 13.1 The reframe
+
+> Stop designing scenes containing Dancefloor objects.
+> Start designing **one building containing different spaces.**
+
+ROAD, Guidance, Signals, Model and the Observatory are not separate
+environments. They are different architectural experiences inside one enormous
+venue, and the camera physically travels between them. Every previous pass built
+districts *near* each other; this one builds a building.
+
+§68 is explicit about what not to do next: **stop polishing the Dancefloor.**
+Freeze floor effects and build the venue.
+
+### 13.2 What was built
+
+`blender/previs/venue.py` replaces the ad-hoc shell and landmark modules with an
+architectural master plan. Everything is dimensioned on one module derived from
+the tile, so the building reads as generated from the floor:
+
+```
+1 MODULE = 1 tile = 1 metre        structural bay = 12 modules
+```
+
+A real section, with every space on a level:
+
+| Level | Height | Space |
+| --- | --- | --- |
+| L-2 | −18 m | deep routing infrastructure |
+| L-1 | −8 m | mechanical / signal layer |
+| L0 | 0 m | arrival, central Dancefloor / Fracture hall |
+| L1 | +9 m | perimeter galleries and balconies |
+| L2 | +18 m | ROAD terrace, Guidance base, bridges |
+| L3 | +30 m | Observatory deck |
+| — | +34 m | luminous grid canopy |
+
+Construction logic is enforced rather than implied: columns land on footings and
+carry slabs to the canopy, slabs have thickness and a shadow-gap edge, bridges
+have supports and railings, glass has thickness and mullions, and stairs have
+0.17 m risers wherever the plan implies vertical circulation. Human scale is
+expressed without humans — 1.1 m railings, 2.1 m openings, 4 m bridge decks —
+because without those references a 100 m room reads like a 10 m one.
+
+### 13.3 The master plan deliverable
+
+§69 requires a top view, longitudinal section and cross section before further
+asset production. Rendered as orthographic grey clay in
+`blender/previs/master_plan.py`.
+
+**These also serve as the §75 pass condition.** Rendered entirely in neutral
+clay with no colour at all, the plan reads as one coherent building: a central
+hall on a column grid, perimeter galleries, arrival at the south, the ROAD
+terrace projecting west, the Guidance canyon east, and the city extensions
+beyond on the same structural language. That is the test the previous world
+would have failed.
+
+### 13.4 Cameras re-cut through the venue
+
+All 30 anchors re-placed in real spaces at believable heights, per §36: arrival
+at 1.65 m, ROAD low and gliding, Guidance vertical, Signals at infrastructure
+scale, the Observatory at human height on its deck, and only the City aerial.
+Focal lengths stay in the 36–56° range — no 12 mm game views.
+
+### 13.5 In the browser
+
+The venue exports as five Draco GLBs on the brief's load priority:
+
+| Group | Size | Tris |
+| --- | --- | --- |
+| `core` — structure, arrival, central hall | 55.5 KB | 20,280 |
+| `upper` — canopy, canopy lights, facade | 20.4 KB | 6,428 |
+| `districts` — ROAD, Guidance, atrium, Observatory | 38.3 KB | 14,640 |
+| `underfloor` — infrastructure and its lighting | 19.1 KB | 6,468 |
+| `far` — city extensions | 6.2 KB | 672 |
+
+**139.6 KB, 48,488 triangles.** Runtime: 33–35 draw calls, 108–115k triangles,
+75 FPS.
+
+The runtime material library is now the locked eight-family set assigned by
+architectural role — concrete, steel, glass, acrylic, stone, aluminium, resin,
+technical — rather than materials chosen object by object.
+
+### 13.6 Lighting is now the open problem, and it is measured
+
+§25's three layers are in: architectural ambient, integrated architectural light
+with warm and cool practicals built into the venue, and the Dancefloor's own
+narrative light. A coordinate bug was found and fixed along the way — the warm
+arrival practical was placed at `z = +66` when arrival sits at Blender `y = +72`,
+which is `z = −72` in the runtime, so the light was on the opposite side of the
+building.
+
+Measured mean luminance after the pass:
+
+| Section | Luminance | |
+| --- | --- | --- |
+| `#hero` | 6.6% | enclosed arrival |
+| `#problem` | 6.9% | |
+| `#road` | 8.7% | |
+| `#guidance` | 5.9% | enclosed canyon |
+| `#capture` | 22.6% | ✓ |
+| `#model` | 32.7% | ✓ |
+| `#security` | 4.0% | enclosed Observatory |
+| `#close` | 15.9% | ✓ |
+
+The pattern is clear and diagnostic: **open volumes pass, enclosed spaces fail.**
+Once the world became a real building rather than objects under an open sky, the
+environment stopped supplying ambient light to interiors, and global lighting
+cannot fix that.
+
+This means §29 and §77 currently fail in the enclosed spaces: a photographer
+could not yet expose the arrival, the canyon or the Observatory with the
+Dancefloor switched off.
+
+### 13.7 Next
+
+§27 asks for a lighting hierarchy defined **per camera state** — key, fill,
+practicals, accents, backlight. So far that has only been done globally. Each
+enclosed space needs its own designed rig, which is precisely the work the
+brief describes and the measurements now point at.
+
+After that: textures and micro-detail (§22–24), bevels on visible structural
+edges, and the remaining pass conditions (§76 without the Dancefloor, §77
+without emissives, §78 the final photograph).

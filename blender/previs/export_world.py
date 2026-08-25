@@ -1,13 +1,9 @@
 """
-Exports the world to GLB for the runtime.
+Exports the venue to GLB for the runtime.
 
-Blender builds the world; WebGL runs it. Until this existed the world only lived
-in previs, so the browser rendered a Dancefloor floating in atmosphere while the
-architecture sat in a .blend file nobody shipped.
-
-Split by load priority rather than exported as one monolith: the first
-meaningful frame must appear quickly, so hero architecture arrives before the
-far environment.
+Split by load priority so the first meaningful frame arrives quickly: the spaces
+the visitor is standing in first, then the rooms they travel to, then the
+distant extensions that only supply scale.
 
     blender --background --python blender/previs/export_world.py
 """
@@ -25,39 +21,34 @@ import build_scene  # noqa: E402
 
 OUT_DIR = os.path.join(ROOT, "static", "world")
 
-# Priority groups, mirroring the brief's loading order. Objects are named by the
-# functions in world_shell.py and landmarks.py.
 GROUPS = {
-    # Arrives first: the architecture the hero composition is framed against.
+    # Where the visitor arrives and what they first see.
     "core": [
-        "FLOOR_SECONDARY",
-        "WALL_MASSES",
-        "STRUCTURAL_COLUMNS",
-        "MID_TERRACES",
+        "VENUE_STRUCTURE",
+        "VENUE_ARRIVAL",
+        "VENUE_CENTRAL_HALL",
     ],
-    # The upper world and the structures that light it.
+    # The ceiling is a hero element, so it lands with the room it belongs to.
     "upper": [
-        "CEILING_ARCHITECTURE",
-        "TRANSLUCENT_MASSES",
-        "ENVIRONMENT_LIGHT_STRUCTURES",
-        "OPENINGS",
-        "SHAFTS",
+        "VENUE_CANOPY",
+        "VENUE_CANOPY_LIGHT",
+        "VENUE_FACADE",
     ],
-    # Recurring geography — needed before the camera travels, not before it starts.
-    "landmarks": [
-        "LANDMARK_SPINE",
-        "LANDMARK_BRIDGE",
-        "LANDMARK_BRIDGE_SPAN",
-        "LANDMARK_BEACON",
-        "LANDMARK_GLASS_WALL",
-        "LANDMARK_OBSERVATORY",
-        "BRIDGES",
+    # The districts the camera travels to.
+    "districts": [
+        "VENUE_ROAD",
+        "VENUE_GUIDANCE",
+        "VENUE_ATRIUM",
+        "VENUE_OBSERVATORY",
     ],
-    # Silhouette and scale only. Last, and the first thing mobile may skip.
+    # Back-of-house, only visible during the return path.
+    "underfloor": [
+        "VENUE_UNDERFLOOR",
+        "VENUE_UNDERFLOOR_LIGHT",
+    ],
+    # Silhouette and scale only; the first thing a low-tier device may skip.
     "far": [
-        "BACKGROUND_TOWERS",
-        "DISTANT_PLATFORMS",
-        "FAR_GEOMETRY",
+        "VENUE_CITY",
     ],
 }
 
@@ -82,8 +73,6 @@ def export_group(name, object_names):
         export_format="GLB",
         use_selection=True,
         export_apply=True,
-        # Draco is in the required stack and these are box-heavy meshes that
-        # compress well. The runtime carries the matching decoder.
         export_draco_mesh_compression_enable=True,
         export_draco_mesh_compression_level=6,
         export_yup=True,
@@ -94,30 +83,27 @@ def export_group(name, object_names):
         export_texcoords=False,
         export_materials="EXPORT",
     )
-    size = os.path.getsize(path)
     tris = sum(len(o.data.loop_triangles) for o in objects if o.type == "MESH" and o.data)
-    return {"file": os.path.basename(path), "bytes": size, "objects": len(objects), "triangles": tris}
+    return {"bytes": os.path.getsize(path), "objects": len(objects), "triangles": tris}
 
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
     build_scene.build("ACT_I_FIELD_AT_REST")
 
-    # Triangle counts need evaluated meshes.
     for obj in bpy.data.objects:
         if obj.type == "MESH" and obj.data:
             obj.data.calc_loop_triangles()
 
-    results = {}
+    total = 0
     for name, members in GROUPS.items():
         info = export_group(name, members)
         if info:
-            results[name] = info
-            print(f"  {name:10} {info['bytes'] / 1024:8.1f} KB  "
-                  f"{info['objects']:3d} objects  {info['triangles']:6d} tris")
+            total += info["bytes"]
+            print(f"  {name:11} {info['bytes'] / 1024:8.1f} KB  "
+                  f"{info['objects']:2d} objects  {info['triangles']:7d} tris")
 
-    total = sum(r["bytes"] for r in results.values())
-    print(f"WORLD_EXPORT {len(results)} groups, {total / 1024:.1f} KB total -> {OUT_DIR}")
+    print(f"WORLD_EXPORT {total / 1024:.1f} KB total -> {OUT_DIR}")
 
 
 if __name__ == "__main__":

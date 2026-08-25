@@ -95,60 +95,83 @@ TIMING = {
 # going behind it.
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Camera compositions — cut through the venue
+#
+# Re-cut against the architectural master plan. Every anchor now sits in a real
+# space at a believable height, and every transition happens because the camera
+# physically travels somewhere rather than because a value was interpolated.
+#
+# Camera heights vary with purpose: arrival is human (1.4-1.8 m), ROAD glides
+# low, Guidance moves vertically, Signals sits at infrastructure scale, the
+# Observatory is at human height on its deck, and only the City is aerial.
+#
+# Focal lengths stay in believable territory - roughly 24-35 mm equivalent for
+# the large volumes, 35-50 mm for intimate moments. No 12 mm game views.
+#
+# The venue, in Blender coordinates (Z up):
+#     central hall      +/-36, canopy soffit at  34
+#     arrival           y = +72, soffit at        6
+#     ROAD terrace      x = -96, tiers 18 down to 9
+#     Guidance canyon   x = +96, masses to        30
+#     Observatory       y = -84, deck at         30
+#     underfloor        mechanical -8, deep     -18
+# ---------------------------------------------------------------------------
+
 DESKTOP = {
-    # FG the hero tile and its frame; MG columns and the Spine; BG the Glass Wall
-    # and the district beyond it. Copy sits left, over the darker wall mass.
-    "HERO":        dict(position=(2.0, 2.4, -6.0),   target=(48.0, 5.6, -36.0),  fov=38),
-    # Pull back and up: the field resolves, the ceiling and columns arrive.
-    "HERO_PULL":   dict(position=(15.0, 7.5, -27.0), target=(0.0, 1.5, -2.0),    fov=42),
-    # Three districts at different depths, the incomplete Bridge crossing above.
-    "FRACTURE":    dict(position=(-31.0, 21.0, -58.0), target=(1.0, 6.5, -19.0), fov=46),
-    # Wide, horizontal, analytical. Terraces layer the midground.
-    "ROAD":        dict(position=(-47.0, 8.5, -11.0), target=(7.0, 2.0, 5.0),    fov=44),
-    # Vertical and directional: down the corridor toward the Spine, which rises.
-    "GUIDANCE":    dict(position=(2.0, 3.0, -24.0),  target=(-5.0, 11.0, 22.0),  fov=38),
-    # Underfloor. Conduits pass close to camera; infrastructure recedes far below.
-    "CAPTURE":     dict(position=(0.5, -9.0, -18.0),  target=(0.0, -6.0, 20.0),  fov=52),
-    # Rising back through the plane as the systems align. Everything visited is visible.
-    "MODEL":       dict(position=(27.0, 30.0, -46.0), target=(0.0, 10.0, -4.0),  fov=44),
-    # On the Observatory deck, looking out over the system operating below.
-    "OBSERVATORY": dict(position=(31.0, 44.0, -5.0),  target=(2.0, 7.0, 19.0),   fov=40),
-    # Through the oculus. The hall, its districts and the Beacon all read at once.
-    "CITY":        dict(position=(12.0, 122.0, -31.0), target=(0.0, 20.0, 5.0),  fov=52),
-    # The world recedes but never stops. Footer content enters over this.
-    "SETTLE":      dict(position=(0.0, 168.0, -62.0), target=(0.0, 18.0, 0.0),   fov=46),
+    # Arrival: human height, inside a compressed threshold, looking through the
+    # portal at a volume that is implied rather than revealed.
+    "HERO":        dict(position=(0.0, 1.65, -78.0),   target=(0.0, 8.0, -20.0),   fov=38),
+    # Moving through the portal as the central hall opens up.
+    "HERO_PULL":   dict(position=(0.0, 3.2, -56.0),    target=(0.0, 14.0, 10.0),   fov=44),
+    # The main room. Gallery height, looking across the hall to the far balconies.
+    "FRACTURE":    dict(position=(2.0, 16.0, -40.0),   target=(0.0, 10.0, 20.0),   fov=46),
+    # The coverage terrace: low and gliding, broad and horizontal.
+    "ROAD":        dict(position=(-58.0, 21.0, -26.0), target=(-100.0, 14.0, 4.0), fov=42),
+    # The canyon: vertical and directional, climbing the modular masses.
+    "GUIDANCE":    dict(position=(70.0, 8.0, 2.0),     target=(112.0, 30.0, 0.0),  fov=36),
+    # Back-of-house, at infrastructure scale, between the routing corridors.
+    "CAPTURE":     dict(position=(0.0, -6.0, -30.0),   target=(0.0, -12.0, 30.0),  fov=48),
+    # The convergence atrium, rising through the levels.
+    "MODEL":       dict(position=(0.0, 26.0, -60.0),   target=(0.0, 18.0, 20.0),   fov=44),
+    # Standing on the Observatory deck, looking back over the venue.
+    "OBSERVATORY": dict(position=(0.0, 32.0, 70.0),    target=(0.0, 16.0, -10.0),  fov=38),
+    # The only aerial shot: the whole property, recognised rather than introduced.
+    "CITY":        dict(position=(62.0, 152.0, -140.0), target=(0.0, 20.0, 0.0),   fov=44),
+    "SETTLE":      dict(position=(30.0, 212.0, -200.0), target=(0.0, 10.0, 0.0),   fov=40),
 }
 
 TABLET = {
-    "HERO":        dict(position=(1.8, 2.3, -5.5),   target=(42.0, 5.5, -32.0),  fov=42),
-    "HERO_PULL":   dict(position=(11.0, 6.5, -21.0), target=(0.0, 1.5, -2.0),    fov=46),
-    "FRACTURE":    dict(position=(-22.0, 17.0, -44.0), target=(1.0, 6.0, -16.0), fov=50),
-    "ROAD":        dict(position=(-34.0, 7.5, -9.0), target=(5.0, 2.0, 4.0),     fov=48),
-    "GUIDANCE":    dict(position=(1.8, 2.8, -23.0),  target=(-4.5, 11.0, 21.0),  fov=42),
-    "CAPTURE":     dict(position=(0.4, -8.6, -16.0), target=(0.0, -6.0, 18.0),   fov=56),
-    "MODEL":       dict(position=(21.0, 26.0, -38.0), target=(0.0, 9.0, -3.0),   fov=48),
-    "OBSERVATORY": dict(position=(31.0, 43.0, -3.0), target=(3.0, 8.0, 17.0),    fov=44),
-    "CITY":        dict(position=(9.0, 112.0, -26.0), target=(0.0, 20.0, 4.0),   fov=56),
-    "SETTLE":      dict(position=(0.0, 152.0, -52.0), target=(0.0, 18.0, 0.0),   fov=50),
+    "HERO":        dict(position=(0.0, 1.62, -70.0),   target=(0.0, 8.0, -20.0),   fov=42),
+    "HERO_PULL":   dict(position=(0.0, 3.1, -50.0),    target=(0.0, 13.0, 8.0),    fov=48),
+    "FRACTURE":    dict(position=(1.5, 15.0, -34.0),   target=(0.0, 10.0, 16.0),   fov=50),
+    "ROAD":        dict(position=(-52.0, 20.0, -22.0), target=(-98.0, 14.0, 3.0),  fov=46),
+    "GUIDANCE":    dict(position=(74.0, 7.0, 1.5),     target=(110.0, 28.0, 0.0),  fov=40),
+    "CAPTURE":     dict(position=(0.0, -6.0, -26.0),   target=(0.0, -12.0, 26.0),  fov=52),
+    "MODEL":       dict(position=(0.0, 24.0, -52.0),   target=(0.0, 17.0, 16.0),   fov=48),
+    "OBSERVATORY": dict(position=(0.0, 31.8, 66.0),    target=(0.0, 16.0, -8.0),   fov=42),
+    "CITY":        dict(position=(50.0, 138.0, -124.0), target=(0.0, 20.0, 0.0),   fov=48),
+    "SETTLE":      dict(position=(24.0, 192.0, -178.0), target=(0.0, 10.0, 0.0),   fov=44),
 }
 
 MOBILE = {
-    # Close on the tile with the Spine behind it; sky-side of frame stays open.
-    "HERO":        dict(position=(1.6, 2.2, -5.0),   target=(34.0, 5.6, -28.0),  fov=48),
-    # Forward, not sideways: the field opens ahead while the frame stays tall.
-    "HERO_PULL":   dict(position=(4.0, 4.2, -13.0),  target=(0.0, 2.4, 2.0),     fov=52),
-    # Between districts rather than above them, gaps receding into depth.
-    "FRACTURE":    dict(position=(-6.0, 9.0, -30.0), target=(-2.0, 5.0, 2.0),    fov=58),
-    # Move between coverage structures, terrain running away from camera.
-    "ROAD":        dict(position=(-16.0, 6.0, -6.0), target=(-2.0, 2.4, 16.0),   fov=54),
-    # Straight down the corridor; the Spine gives the shot its vertical.
-    "GUIDANCE":    dict(position=(1.5, 2.6, -22.0),  target=(-4.0, 12.0, 20.0),  fov=48),
-    "CAPTURE":     dict(position=(0.0, -8.2, -13.0), target=(0.0, -5.5, 16.0),   fov=60),
-    # Rise vertically through architecture before the system below is revealed.
-    "MODEL":       dict(position=(12.0, 22.0, -28.0), target=(2.0, 8.0, -2.0),   fov=54),
-    "OBSERVATORY": dict(position=(30.0, 42.5, -1.0), target=(6.0, 9.0, 15.0),    fov=50),
-    "CITY":        dict(position=(5.0, 96.0, -20.0), target=(0.0, 22.0, 3.0),    fov=62),
-    "SETTLE":      dict(position=(0.0, 130.0, -42.0), target=(0.0, 18.0, 0.0),   fov=56),
+    # Tighter inside the threshold, the portal framing the view ahead.
+    "HERO":        dict(position=(0.0, 1.60, -62.0),   target=(0.0, 9.0, -22.0),   fov=46),
+    "HERO_PULL":   dict(position=(0.0, 3.0, -46.0),    target=(0.0, 15.0, 4.0),    fov=52),
+    # Between the gallery columns rather than across the whole room: the hall is
+    # read through a framed opening, which is what portrait does well.
+    "FRACTURE":    dict(position=(0.0, 13.0, -30.0),   target=(0.0, 12.0, 14.0),   fov=54),
+    # Moving between coverage tiers, the terrace receding into depth.
+    "ROAD":        dict(position=(-72.0, 19.0, -14.0), target=(-102.0, 15.0, 2.0), fov=50),
+    # Straight up the canyon: the narrow passage is the composition.
+    "GUIDANCE":    dict(position=(84.0, 5.5, 0.0),     target=(104.0, 32.0, 0.0),  fov=48),
+    # Inside a routing corridor, infrastructure closing in on both sides.
+    "CAPTURE":     dict(position=(0.0, -6.5, -22.0),   target=(0.0, -11.0, 22.0),  fov=56),
+    # Rising through the atrium void, levels passing the frame.
+    "MODEL":       dict(position=(0.0, 20.0, -42.0),   target=(0.0, 20.0, 10.0),   fov=52),
+    "OBSERVATORY": dict(position=(0.0, 31.6, 58.0),    target=(0.0, 17.0, -6.0),   fov=46),
+    "CITY":        dict(position=(34.0, 118.0, -104.0), target=(0.0, 22.0, 0.0),   fov=54),
+    "SETTLE":      dict(position=(16.0, 164.0, -150.0), target=(0.0, 10.0, 0.0),   fov=48),
 }
 
 CLASSES = {
