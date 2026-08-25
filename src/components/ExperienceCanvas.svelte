@@ -18,6 +18,8 @@
 
 	let canvas: HTMLCanvasElement;
 	let failed = $state(false);
+	/** Which act's fallback still to show when WebGL is unavailable. */
+	let fallbackAct = $state(1);
 	let snapshot = $state<ExperienceState | null>(null);
 	let fps = $state(0);
 
@@ -40,13 +42,38 @@
 		}
 		return () => experience?.dispose();
 	});
+
+	/**
+	 * Fallback still selection.
+	 *
+	 * If WebGL cannot initialise the visitor still travels the seven acts, just
+	 * through pre-rendered Blender stills rather than a live world. A rendering
+	 * failure must never produce a blank background.
+	 */
+	$effect(() => {
+		if (!failed) return;
+
+		const update = () => {
+			const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+			const progress = scrollable <= 0 ? 0 : window.scrollY / scrollable;
+			// Seven acts across the journey, matching the act boundaries.
+			fallbackAct = Math.min(7, Math.max(1, Math.ceil(progress * 7) || 1));
+		};
+
+		update();
+		window.addEventListener('scroll', update, { passive: true });
+		return () => window.removeEventListener('scroll', update);
+	});
 </script>
 
 <!-- Decorative: the argument lives in the DOM, not in here. -->
 <canvas bind:this={canvas} class="webgl" class:failed aria-hidden="true"></canvas>
 
 {#if failed}
-	<div class="fallback" aria-hidden="true"></div>
+	<picture class="fallback" aria-hidden="true">
+		<source media="(max-width: 767px)" srcset="/fallback/act-{fallbackAct}-mobile.jpg" />
+		<img src="/fallback/act-{fallbackAct}.jpg" alt="" decoding="async" />
+	</picture>
 {/if}
 
 {#if debug && snapshot}
@@ -82,14 +109,21 @@
 		display: none;
 	}
 
-	/* Art-directed stand-in rather than an empty void. */
+	/* Art-directed Blender stills rather than an empty void. */
 	.fallback {
 		position: fixed;
 		inset: 0;
 		z-index: 0;
-		background:
-			radial-gradient(60% 40% at 50% 62%, rgb(57 198 214 / 12%), transparent 70%),
-			linear-gradient(180deg, #05070a 0%, #0a0d11 55%, #05070a 100%);
+		display: block;
+		background: var(--ink-900);
+	}
+
+	.fallback img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0.85;
+		transition: opacity 0.4s ease;
 	}
 
 	.debug {

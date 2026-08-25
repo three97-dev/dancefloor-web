@@ -7,7 +7,7 @@
  * to be replaced wholesale by exported previs data — not hand-tuned forever.
  */
 
-import type { ActId } from '$content/types';
+import type { ActId, SectionId } from '$content/types';
 
 export type Vec3 = readonly [number, number, number];
 
@@ -16,6 +16,8 @@ export interface CameraKeyframe {
 	readonly anchor: string;
 	/** Act this anchor belongs to. */
 	readonly act: ActId;
+	/** The section this anchor's act depicts. */
+	readonly section: SectionId;
 	/** Normalized master progress, 0-1, at which the camera is exactly here. */
 	readonly at: number;
 	readonly position: Vec3;

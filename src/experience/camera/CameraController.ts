@@ -8,9 +8,7 @@
 
 import { CatmullRomCurve3, PerspectiveCamera, Vector3 } from 'three';
 import type { CameraClass, ViewportState } from '../viewport';
-import { CAMERA_DESKTOP } from './CameraDesktop';
-import { CAMERA_MOBILE } from './CameraMobile';
-import { CAMERA_TABLET } from './CameraTablet';
+import { CAMERA_DESKTOP, CAMERA_MOBILE, CAMERA_TABLET } from './previs';
 import type { CameraComposition, CameraKeyframe } from './types';
 
 const COMPOSITIONS: Record<CameraClass, CameraComposition> = {

@@ -55,5 +55,15 @@ mobile moves *deeper into* it using depth rather than width.
 
 ## Status
 
-Phase 1 (greybox) is complete. Geometry is placeholder and materials are not final.
+Phases 1 (greybox) and 2 (Blender previs) are complete. Geometry is placeholder
+and materials are not final.
 Body copy is deliberately pending — see `src/content/types.ts`.
+
+## Previs
+
+Camera compositions are authored in Blender and exported to
+`src/experience/camera/previs.json`. See [`blender/README.md`](blender/README.md).
+
+```bash
+/Applications/Blender.app/Contents/MacOS/Blender --background --python blender/previs/run_build_export.py
+```
