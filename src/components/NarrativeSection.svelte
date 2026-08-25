@@ -12,6 +12,10 @@
 
 	let { section, heading = 'h2' }: { section: Section; heading?: 'h1' | 'h2' } = $props();
 
+	// Scroll distance is proportional to narrative weight, so Fracture gets four
+	// times the room Security does rather than every beat getting one thirteenth.
+	const share = $derived(section.span[1] - section.span[0]);
+
 	let el: HTMLElement;
 	/**
 	 * Only one argument should be legible at a time.
@@ -50,7 +54,9 @@
 	id={section.id}
 	data-act={section.act ?? 'none'}
 	data-order={section.order}
-	style="--focus: {focus}"
+	style="--focus: {focus}; --share: {share}; --copy-width: {section.layout.width}; --copy-width-mobile: {section.mobileLayout.width}"
+	data-align={section.layout.align}
+	data-align-mobile={section.mobileLayout.align}
 >
 	<div class="inner">
 		{#if heading === 'h1'}
@@ -82,14 +88,24 @@
 	section {
 		position: relative;
 		z-index: 1;
-		min-height: calc(var(--journey-vh, 1000) * 1vh / 13);
+		min-height: calc(var(--journey-vh, 1000) * var(--share, 0.077) * 1vh);
 		display: flex;
-		align-items: center;
 		padding: clamp(4rem, 12vh, 9rem) var(--gutter);
 	}
 
+	/*
+		Composition varies section to section. Repeating one arrangement for the
+		whole page reads as a template, and the brief rules it out explicitly.
+	*/
+	section[data-align='left'] { align-items: center; justify-content: flex-start; }
+	section[data-align='right'] { align-items: center; justify-content: flex-end; }
+	section[data-align='center'] { align-items: center; justify-content: center; text-align: center; }
+	section[data-align='lower-right'] { align-items: flex-end; justify-content: flex-end; }
+	section[data-align='editorial-right'] { align-items: center; justify-content: flex-end; }
+	section[data-align='split'] { align-items: center; justify-content: space-between; }
+
 	.inner {
-		max-width: var(--measure);
+		max-width: calc(var(--copy-width, 40) * 1vw);
 		opacity: var(--focus, 1);
 		/* Recede slightly as well as fade, so the copy sits in the world. */
 		transform: translateY(calc((1 - var(--focus, 1)) * 1.25rem));
@@ -123,14 +139,23 @@
 		Mobile keeps shorter line lengths and leaves the lower half of the frame
 		free, because each mobile camera position composes negative space there.
 	*/
+	/* Mobile is a single focal column; only the width and emphasis vary. */
 	@media (max-width: 767px) {
-		section {
+		section,
+		section[data-align] {
 			align-items: flex-start;
+			justify-content: flex-start;
+			text-align: left;
 			padding-top: calc(var(--nav-h) + 14vh);
 		}
 
+		section[data-align-mobile='center'] {
+			text-align: center;
+			justify-content: center;
+		}
+
 		.inner {
-			max-width: 22rem;
+			max-width: calc(var(--copy-width-mobile, 88) * 1vw);
 		}
 	}
 </style>

@@ -8,7 +8,12 @@
 	 */
 	import { onMount } from 'svelte';
 	import { base } from '$app/paths';
-	import { Experience, WebGLUnavailableError, type ExperienceState } from '$experience/Experience';
+	import {
+		Experience,
+		WebGLUnavailableError,
+		type ExperienceState,
+		type ExperienceStats
+	} from '$experience/Experience';
 
 	interface Props {
 		/** Show the ?debug=1 overlay. */
@@ -22,17 +27,17 @@
 	/** Which act's fallback still to show when WebGL is unavailable. */
 	let fallbackAct = $state(1);
 	let snapshot = $state<ExperienceState | null>(null);
-	let fps = $state(0);
+	let stats = $state<ExperienceStats | null>(null);
 
 	onMount(() => {
 		let experience: Experience | undefined;
 		try {
 			experience = new Experience({
 				canvas,
-				onState: (next, f) => {
+				onState: (next, s) => {
 					if (!debug) return;
 					snapshot = next;
-					fps = f;
+					stats = s;
 				}
 			});
 		} catch (error) {
@@ -83,7 +88,12 @@
 		<div><b>progress</b> {snapshot.progress.toFixed(4)}</div>
 		<div><b>act progress</b> {snapshot.actProgress.toFixed(3)}</div>
 		<div><b>elapsed</b> {snapshot.elapsed.toFixed(1)}s</div>
-		<div><b>fps</b> {fps.toFixed(0)}</div>
+		<div><b>fps</b> {stats?.fps.toFixed(0) ?? '-'}</div>
+		<div><b>anchor</b> {stats?.anchor ?? '-'}</div>
+		<div><b>viewport</b> {stats?.viewport ?? '-'}</div>
+		<div><b>tier / dpr</b> {stats?.tier ?? '-'} / {stats?.pixelRatio.toFixed(2) ?? '-'}</div>
+		<div><b>draws / tris</b> {stats?.drawCalls ?? 0} / {((stats?.triangles ?? 0) / 1000).toFixed(0)}k</div>
+		<div><b>ambient events</b> {stats?.ambientEvents ?? 0}</div>
 		<hr />
 		<div><b>fracture</b> {snapshot.fracture.toFixed(2)}</div>
 		<div><b>terrain</b> {snapshot.terrain.toFixed(2)}</div>

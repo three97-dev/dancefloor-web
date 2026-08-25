@@ -20,6 +20,8 @@ from mathutils import Euler, Matrix, Vector
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import anchors  # noqa: E402
+import landmarks  # noqa: E402
+import world_shell  # noqa: E402
 
 # --- world constants, mirroring src/content/scene-data.ts -------------------
 
@@ -59,6 +61,13 @@ ACT_STATES = {
 
 # --- helpers ----------------------------------------------------------------
 
+# §92: during environment development, do NOT use black as the background.
+# Black hides missing geometry. Grey exposes empty horizons, missing walls,
+# world edges, insufficient depth and bad composition. Final darkness is only
+# introduced once the world works without it.
+GREYBOX = True
+
+
 def purge():
     """Clear the file back to an empty scene."""
     # read_homefile rather than read_factory_settings: the latter also wipes
@@ -70,7 +79,7 @@ def purge():
     scene.render.film_transparent = False
     # The world should feel photographable.
     scene.view_settings.view_transform = "AgX"
-    scene.view_settings.look = "AgX - Base Contrast"
+    scene.view_settings.look = "None" if GREYBOX else "AgX - Base Contrast"
 
 
 def collection(name, parent=None):
@@ -501,8 +510,14 @@ def build_lighting(col):
     world = bpy.data.worlds.new("DF_World")
     world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
-    bg.inputs["Color"].default_value = (0.012, 0.016, 0.022, 1.0)
-    bg.inputs["Strength"].default_value = 1.0
+    if GREYBOX:
+        # Neutral grey. If the composition only works because things vanish into
+        # black, the world is under-designed and this will show it.
+        bg.inputs["Color"].default_value = (0.22, 0.23, 0.24, 1.0)
+        bg.inputs["Strength"].default_value = 1.0
+    else:
+        bg.inputs["Color"].default_value = (0.012, 0.016, 0.022, 1.0)
+        bg.inputs["Strength"].default_value = 1.0
     bpy.context.scene.world = world
 
     def area(name, location, energy, size, color):
@@ -516,8 +531,13 @@ def build_lighting(col):
         col.objects.link(obj)
         return obj
 
-    area("LIGHT_Key", (-12, -10, 22), 110, 24, (0.56, 0.65, 0.72))
-    area("LIGHT_Rim", (16, 14, 9), 55, 18, (0.22, 0.55, 0.62))
+    if GREYBOX:
+        # Even, undramatic light: the greybox is judged on geometry, not mood.
+        area("LIGHT_Key", (-70, -60, 120), 90000, 160, (1.0, 1.0, 1.0))
+        area("LIGHT_Fill", (80, 70, 90), 40000, 160, (1.0, 1.0, 1.0))
+    else:
+        area("LIGHT_Key", (-12, -10, 22), 110, 24, (0.56, 0.65, 0.72))
+        area("LIGHT_Rim", (16, 14, 9), 55, 18, (0.22, 0.55, 0.62))
 
 
 # --- entry point ------------------------------------------------------------
@@ -530,6 +550,12 @@ def build(act="ACT_III_THE_PATCH"):
     world_col = collection("WORLD")
     cams = collection("CAMERAS")
     lights = collection("LIGHTING")
+
+    # The world first: the Dancefloor is one manifestation of a larger system,
+    # not the environment itself.
+    grey = world_shell.clay_materials()
+    world_shell.build(grey)
+    landmarks.build(grey)
 
     module = build_tile_module(mats, modules)
     place_hero_tile(module, act)

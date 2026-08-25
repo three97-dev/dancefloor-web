@@ -15,7 +15,9 @@
  */
 
 import Lenis from 'lenis';
+import type { SectionId } from '$content/types';
 import { compositionFor } from '../camera/CameraController';
+import { spanFor } from './ExperienceTimeline';
 import type { CameraClass } from '../viewport';
 
 export interface ScrollControllerOptions {
@@ -26,7 +28,7 @@ export interface ScrollControllerOptions {
 export class ScrollController {
 	#lenis: Lenis | null = null;
 	#progress = 0;
-	#sections: { top: number; bottom: number }[] = [];
+	#sections: { top: number; bottom: number; from: number; to: number }[] = [];
 
 	constructor(options: ScrollControllerOptions) {
 		this.setScrollLength(options.cameraClass);
@@ -73,7 +75,9 @@ export class ScrollController {
 		).map((el) => {
 			const rect = el.getBoundingClientRect();
 			const top = rect.top + window.scrollY;
-			return { top, bottom: top + rect.height };
+			// Each section declares the slice of the journey it owns.
+			const [from, to] = spanFor(el.id as SectionId);
+			return { top, bottom: top + rect.height, from, to };
 		});
 		this.#read();
 	}
@@ -95,9 +99,13 @@ export class ScrollController {
 	 *
 	 * Progress cannot be raw document scroll: the footer sits below the thirteen
 	 * sections, so a straight scrollY/scrollHeight would run the acts ahead of
-	 * the copy they are supposed to depict. Instead each section is measured and
-	 * mapped onto its own equal thirteenth, which makes section i occupy exactly
-	 * [(i-1)/13, i/13] — the space the act ranges and camera anchors assume.
+	 * the copy they are supposed to depict.
+	 *
+	 * Nor can the sections be treated as equal thirteenths. The narrative
+	 * allocation is deliberately uneven — Fracture and ROAD own 12% each while
+	 * Security owns 3% — so each section is measured in the DOM and mapped onto
+	 * the span it declares. Section heights are derived from the same spans, so
+	 * the two agree by construction.
 	 *
 	 * A section is active while the centre of the viewport is inside it.
 	 */
@@ -119,11 +127,11 @@ export class ScrollController {
 		}
 
 		for (let i = 0; i < count; i++) {
-			const { top, bottom } = sections[i];
+			const { top, bottom, from, to } = sections[i];
 			if (centre < bottom) {
-				const span = bottom - top;
-				const local = span <= 0 ? 0 : clamp01((centre - top) / span);
-				this.#progress = clamp01((i + local) / count);
+				const height = bottom - top;
+				const local = height <= 0 ? 0 : clamp01((centre - top) / height);
+				this.#progress = clamp01(from + (to - from) * local);
 				return;
 			}
 		}

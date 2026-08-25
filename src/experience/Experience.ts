@@ -18,7 +18,7 @@ import { World } from './World';
 export interface ExperienceOptions {
 	canvas: HTMLCanvasElement;
 	/** Called each frame with the derived state, for the debug overlay. */
-	onState?: (state: ExperienceState, fps: number) => void;
+	onState?: (state: ExperienceState, stats: ExperienceStats) => void;
 }
 
 export class Experience {
@@ -36,7 +36,7 @@ export class Experience {
 	#raf = 0;
 	#lastTime = 0;
 	#running = false;
-	#onState?: (state: ExperienceState, fps: number) => void;
+	#onState?: (state: ExperienceState, stats: ExperienceStats) => void;
 
 	constructor(options: ExperienceOptions) {
 		this.#view = readViewportState();
@@ -110,6 +110,7 @@ export class Experience {
 		const dt = Math.min(0.05, (now - this.#lastTime) / 1000);
 		this.#lastTime = now;
 
+		this.#renderer.beginFrame();
 		this.#scroll.raf(now);
 
 		// Ambient time advances whether or not the visitor is scrolling.
@@ -117,6 +118,9 @@ export class Experience {
 		this.#state = deriveState(this.#scroll.progress, elapsed);
 
 		this.#camera.update(this.#state.progress, dt);
+		// The atmosphere volume travels with the camera, so it has no reachable edge.
+		const eye = this.#camera.camera.position;
+		this.#world.atmosphere.setCenter(eye.x, eye.y, eye.z);
 		this.#world.update(dt, this.#state);
 		this.#post.update(this.#state);
 
@@ -124,7 +128,18 @@ export class Experience {
 		else this.#renderer.render(this.#world.scene, this.#camera.camera);
 
 		this.#performance.sample(dt, now);
-		this.#onState?.(this.#state, this.#performance.fps);
+
+		const info = this.#renderer.renderer.info;
+		this.#onState?.(this.#state, {
+			fps: this.#performance.fps,
+			tier: this.#quality.tier,
+			pixelRatio: this.#quality.pixelRatio,
+			drawCalls: info.render.calls,
+			triangles: info.render.triangles,
+			ambientEvents: this.#world.living.events.length,
+			viewport: this.#view.viewport,
+			anchor: this.#camera.nearestAnchor(this.#state.progress).anchor
+		});
 	};
 
 	#onPointerMove = (event: PointerEvent) => {
@@ -161,6 +176,17 @@ export class Experience {
 		this.#world.dispose();
 		this.#renderer.dispose();
 	}
+}
+
+export interface ExperienceStats {
+	fps: number;
+	tier: string;
+	pixelRatio: number;
+	drawCalls: number;
+	triangles: number;
+	ambientEvents: number;
+	viewport: string;
+	anchor: string;
 }
 
 export { WebGLUnavailableError };

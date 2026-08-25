@@ -62,8 +62,19 @@ export class Renderer {
 		this.renderer.setSize(width, height, false);
 	}
 
-	render(scene: Scene, camera: PerspectiveCamera) {
+	/**
+	 * Clears the per-frame counters.
+	 *
+	 * `info.autoReset` is off so that a frame's stats survive until they are
+	 * read. That means the reset has to happen explicitly at the top of every
+	 * frame — including frames drawn through the composer, which never touch
+	 * `render()` below and would otherwise accumulate counts forever.
+	 */
+	beginFrame() {
 		this.renderer.info.reset();
+	}
+
+	render(scene: Scene, camera: PerspectiveCamera) {
 		this.renderer.render(scene, camera);
 	}
 

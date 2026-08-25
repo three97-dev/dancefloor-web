@@ -65,10 +65,34 @@ export const isPending = (value: unknown): value is PendingCopy =>
 
 export type Prose = string | PendingCopy;
 
+/** Where a section sits on the normalized 0-1 timeline, as [start, end]. */
+export type Span = readonly [number, number];
+
+/** Where the copy sits in the frame. Composition must vary section to section. */
+export type ContentAlign = 'left' | 'right' | 'center' | 'split' | 'editorial-right' | 'lower-right';
+
+export interface SectionLayout {
+	readonly align: ContentAlign;
+	/** Copy column width, as a viewport-width percentage. */
+	readonly width: number;
+}
+
 export interface Section {
 	readonly id: SectionId;
 	/** 1-13. Reading the H2s in order should communicate the entire argument. */
 	readonly order: number;
+	/**
+	 * Share of the journey this section owns.
+	 *
+	 * Deliberately uneven: the cinematic acts need room to breathe and the
+	 * commercial sections do not. Section heights are derived from this, so the
+	 * scroll distance a visitor travels matches the narrative weight.
+	 */
+	readonly span: Span;
+	/** Desktop composition. Repeating one layout for every section is forbidden. */
+	readonly layout: SectionLayout;
+	/** Mobile composition — a single focal column, but width still varies. */
+	readonly mobileLayout: SectionLayout;
 	/** Which act of the 3D scene sits behind this section, if any. */
 	readonly act: ActId | null;
 	/** The argument. Verbatim from the content architecture. */

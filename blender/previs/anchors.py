@@ -16,19 +16,36 @@ centre of its section unless it is deliberately placed on a boundary.
 """
 
 # Section order is load-bearing. Index here matches the runtime.
-SECTIONS = [
-    "hero", "thesis", "problem", "road", "guidance", "capture", "model",
-    "audience", "differentiation", "security", "pricing", "faq", "close",
-]
+# Section spans, mirroring src/content/site.ts. The narrative allocation is
+# deliberately uneven — the cinematic acts need room, the commercial sections
+# do not — so anchors cannot be placed on equal thirteenths.
+SECTION_SPANS = {
+    "hero":            (0.00, 0.12),
+    "thesis":          (0.12, 0.18),
+    "problem":         (0.18, 0.30),
+    "road":            (0.30, 0.42),
+    "guidance":        (0.42, 0.53),
+    "capture":         (0.53, 0.63),
+    "model":           (0.63, 0.73),
+    "audience":        (0.73, 0.77),
+    "differentiation": (0.77, 0.81),
+    "security":        (0.81, 0.84),
+    "pricing":         (0.84, 0.87),
+    "faq":             (0.87, 0.94),
+    "close":           (0.94, 1.00),
+}
+
+SECTIONS = list(SECTION_SPANS)
 
 
 def section_centre(name):
     """Normalized progress at the centre of a section."""
-    return (SECTIONS.index(name) + 0.5) / len(SECTIONS)
+    lo, hi = SECTION_SPANS[name]
+    return round((lo + hi) / 2, 4)
 
 
 def section_start(name):
-    return SECTIONS.index(name) / len(SECTIONS)
+    return SECTION_SPANS[name][0]
 
 
 ACTS = {
@@ -53,7 +70,7 @@ TIMING = {
     "GUIDANCE": (section_centre("guidance"), "guidance"),
     "CAPTURE": (section_centre("capture"), "capture"),
     "MODEL": (section_centre("model"), "model"),
-    "OBSERVATORY": (section_centre("security"), "security"),
+    "OBSERVATORY": (round((SECTION_SPANS["audience"][0] + SECTION_SPANS["faq"][1]) / 2, 4), "security"),
     "CITY": (section_centre("close"), "close"),
     "SETTLE": (1.0, "close"),
 }

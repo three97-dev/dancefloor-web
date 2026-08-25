@@ -6,7 +6,7 @@
  * of dynamic point lights.
  */
 
-import { AmbientLight, DirectionalLight, Fog, PointLight, type Scene } from 'three';
+import { AmbientLight, DirectionalLight, PointLight, type Scene } from 'three';
 import type { QualitySettings } from '../quality';
 import type { ExperienceState } from '../scroll/ExperienceTimeline';
 
@@ -14,7 +14,6 @@ export class LightingSystem {
 	#ambient: AmbientLight;
 	#key: DirectionalLight;
 	#fill: PointLight | null = null;
-	#fog: Fog;
 
 	constructor(scene: Scene, quality: QualitySettings) {
 		// Base: charcoal, black, dark grey. The floor supplies the colour.
@@ -38,16 +37,11 @@ export class LightingSystem {
 			scene.add(this.#fill);
 		}
 
-		this.#fog = new Fog('#05070a', 12, 140);
-		scene.fog = this.#fog;
-		scene.background = null;
 	}
 
 	update(state: ExperienceState) {
-		// Air thins as the camera climbs for the city reveal.
-		this.#fog.near = 12 + state.city * 40;
-		this.#fog.far = 140 + state.city * 320;
-
+		// Atmosphere and fog belong to AtmosphereSystem; this owns only the
+		// practical lights over the floor's own illumination.
 		// The key light lifts as the world opens up.
 		this.#key.intensity = 0.7 + state.city * 0.5 + state.alignment * 0.2;
 

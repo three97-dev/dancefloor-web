@@ -30,6 +30,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'hero',
 		order: 1,
+		span: [0.0, 0.12],
+		layout: { align: 'left', width: 46 },
+		mobileLayout: { align: 'left', width: 88 },
 		act: 'ACT_I_FIELD_AT_REST',
 		h2: HERO_H1,
 		sourceConstant: 'HERO',
@@ -39,6 +42,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'thesis',
 		order: 2,
+		span: [0.12, 0.18],
+		layout: { align: 'lower-right', width: 38 },
+		mobileLayout: { align: 'left', width: 86 },
 		act: 'ACT_I_FIELD_AT_REST',
 		h2: 'Revenue leaders have to hit the number. Sellers need a better way to turn their hours into dollars.',
 		sourceConstant: 'THESIS',
@@ -48,6 +54,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'problem',
 		order: 3,
+		span: [0.18, 0.3],
+		layout: { align: 'right', width: 40 },
+		mobileLayout: { align: 'left', width: 88 },
 		act: 'ACT_II_FRACTURE',
 		h2: 'Three questions decide the quarter, and they get answered in three different systems, weeks apart.',
 		sourceConstant: 'PROBLEM',
@@ -59,6 +68,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'road',
 		order: 4,
+		span: [0.3, 0.42],
+		layout: { align: 'left', width: 38 },
+		mobileLayout: { align: 'left', width: 88 },
 		act: 'ACT_III_THE_PATCH',
 		h2: 'Dancefloor answers the first question before the quarter is spent.',
 		sourceConstant: 'ROAD',
@@ -68,6 +80,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'guidance',
 		order: 5,
+		span: [0.42, 0.53],
+		layout: { align: 'right', width: 38 },
+		mobileLayout: { align: 'left', width: 88 },
 		act: 'ACT_IV_THE_RISE',
 		h2: 'It answers the second one inside the deal, at the moment the decision gets made.',
 		sourceConstant: 'GUIDANCE',
@@ -77,6 +92,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'capture',
 		order: 6,
+		span: [0.53, 0.63],
+		layout: { align: 'center', width: 32 },
+		mobileLayout: { align: 'center', width: 84 },
 		act: 'ACT_V_RETURN_PATH',
 		h2: 'And it answers the third one in real time, in three directions.',
 		sourceConstant: 'CAPTURE',
@@ -86,6 +104,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'model',
 		order: 7,
+		span: [0.63, 0.73],
+		layout: { align: 'center', width: 52 },
+		mobileLayout: { align: 'center', width: 90 },
 		act: 'ACT_VI_ONE_PLANE',
 		h2: 'All three run on one model of your revenue organization.',
 		sourceConstant: 'MODEL',
@@ -95,6 +116,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'audience',
 		order: 8,
+		span: [0.73, 0.77],
+		layout: { align: 'editorial-right', width: 40 },
+		mobileLayout: { align: 'left', width: 88 },
 		act: null,
 		h2: 'Built for the mid-market, where enterprise math still runs on spreadsheet instrumentation.',
 		sourceConstant: 'AUDIENCE',
@@ -104,6 +128,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'differentiation',
 		order: 9,
+		span: [0.77, 0.81],
+		layout: { align: 'split', width: 44 },
+		mobileLayout: { align: 'left', width: 88 },
 		act: null,
 		h2: 'Every other tool owns one arc of the loop.',
 		sourceConstant: 'DIFFERENTIATION',
@@ -113,6 +140,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'security',
 		order: 10,
+		span: [0.81, 0.84],
+		layout: { align: 'left', width: 36 },
+		mobileLayout: { align: 'left', width: 88 },
 		act: null,
 		h2: 'Your instance is yours. Your data never leaves it.',
 		sourceConstant: 'SECURITY',
@@ -124,6 +154,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'pricing',
 		order: 11,
+		span: [0.84, 0.87],
+		layout: { align: 'center', width: 40 },
+		mobileLayout: { align: 'center', width: 88 },
 		act: null,
 		h2: 'One flat annual price. Not per seat.',
 		sourceConstant: 'PRICING',
@@ -135,6 +168,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'faq',
 		order: 12,
+		span: [0.87, 0.94],
+		layout: { align: 'center', width: 46 },
+		mobileLayout: { align: 'center', width: 90 },
 		act: null,
 		h2: 'Questions buyers ask first.',
 		sourceConstant: 'FAQ',
@@ -147,6 +183,9 @@ export const SECTIONS: readonly Section[] = [
 	{
 		id: 'close',
 		order: 13,
+		span: [0.94, 1.0],
+		layout: { align: 'center', width: 44 },
+		mobileLayout: { align: 'center', width: 88 },
 		act: 'ACT_VII_THE_CITY',
 		h2: "See what your reps' books actually support this quarter.",
 		sourceConstant: 'FINAL_CTA',
