@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dancefloor",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "dev"],
+      "autoPort": true
+    }
+  ]
+}

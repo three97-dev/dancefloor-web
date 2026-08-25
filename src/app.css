@@ -1,0 +1,101 @@
+/* Base: charcoal, black, dark grey. The Dancefloor supplies the colour. */
+:root {
+	--ink-900: #05070a;
+	--ink-800: #0a0d11;
+	--ink-700: #12171c;
+	--ink-600: #1b2126;
+	--line: rgb(255 255 255 / 9%);
+	--text: #e8edf1;
+	--text-dim: #98a5b0;
+	--signal: #39c6d6;
+
+	--nav-h: 4.25rem;
+	--gutter: clamp(1.25rem, 4vw, 4rem);
+	--measure: 34rem;
+
+	/* Never scale desktop typography proportionally. */
+	--step-hero: clamp(2.5rem, 7vw, 6.5rem);
+	--step-h2: clamp(1.75rem, 3.6vw, 3.25rem);
+	--step-body: clamp(1rem, 1.15vw, 1.125rem);
+
+	color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--ink-900);
+	color: var(--text);
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+	font-size: var(--step-body);
+	line-height: 1.55;
+	-webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+	font-weight: 500;
+	letter-spacing: -0.02em;
+	text-wrap: balance;
+	margin: 0;
+}
+
+a {
+	color: inherit;
+}
+
+:focus-visible {
+	outline: 2px solid var(--signal);
+	outline-offset: 3px;
+	border-radius: 2px;
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+/* The skip link must be reachable above the canvas. */
+.skip-link {
+	position: fixed;
+	top: 0.5rem;
+	left: 0.5rem;
+	z-index: 100;
+	padding: 0.6rem 1rem;
+	background: var(--ink-700);
+	border: 1px solid var(--line);
+	border-radius: 4px;
+	transform: translateY(-150%);
+	transition: transform 0.18s ease;
+}
+
+.skip-link:focus-visible {
+	transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
