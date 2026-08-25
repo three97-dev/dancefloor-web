@@ -25,23 +25,13 @@ import type { QualitySettings } from '../quality';
 import type { ExperienceState } from '../scroll/ExperienceTimeline';
 
 /**
- * Signal palette. Static illumination = the system exists; pulse = activity.
+ * Tile colour comes from the act's colour territory rather than a fixed palette.
  *
- * Deliberately narrow and desaturated. The supplied LED reference informs how
- * a tile is *built* — infinity-mirror depth, dot-matrix interior, glass over a
- * dark frame — not how it is coloured: RGB rainbow behaviour and nightclub
- * visuals are ruled out. Cyan carries the system; amber and violet are accents
- * that mark divergence, and red is reserved for genuine shortfall.
+ * The districts are chromatically isolated during Fracture and share surfaces by
+ * One Plane, so the tiles themselves carry the argument: colour communicates
+ * fragmentation resolving into coordination.
  */
-export const SIGNAL_COLORS = {
-	dormant: new Color('#161b20'),
-	base: new Color('#25505c'),
-	cyan: new Color('#2f9fb0'),
-	electricBlue: new Color('#33628f'),
-	amber: new Color('#96712f'),
-	violet: new Color('#4e4173'),
-	red: new Color('#8a3b31')
-} as const;
+const REGION_MIX = [0.0, 0.35, 0.7, 0.15, 1.0, 0.5];
 
 export interface TileState {
 	elevation: number;
@@ -77,9 +67,12 @@ export class DancefloorSystem {
 
 		const geometry = new BoxGeometry(GRID.tileSize, 0.12, GRID.tileSize);
 		const material = new MeshStandardMaterial({
-			color: '#14181c',
-			roughness: 0.42,
-			metalness: 0.65,
+			// Medium-value gunmetal, not near-black: the frame has to receive and
+			// show environmental colour, otherwise the scene resolves as
+			// black-plus-neon however good the lighting is.
+			color: '#333b47',
+			roughness: 0.38,
+			metalness: 0.55,
 			transparent: true
 		});
 
@@ -188,11 +181,20 @@ export class DancefloorSystem {
 				// The world is already alive when the site loads: a resting tile is
 				// lit, not black, and falls off with distance from the origin so
 				// the opening close-up reads as one luminous object in darkness.
+				// At rest the field is lit near the visitor and falls off with
+				// distance, but never to nothing — a dormant tile still reads as a
+				// surface in a lit room rather than a hole.
 				const distance = Math.hypot(c - half.c, r - half.r);
-				const rest = 0.34 * Math.exp(-distance / 9) + 0.05;
+				const rest = 0.34 * Math.exp(-distance / 9) + 0.11;
+
+				// Coordination raises the whole field: by the City the metropolis
+				// is operating coherently and this is the most luminous state of
+				// the site, so the fabric cannot stay a dark island in a bright world.
+				const coordinated = state.alignment * 0.22 + state.city * 0.55;
 
 				const lit =
 					rest +
+					coordinated +
 					state.terrain * Math.max(0, this.#coverage[i] - 0.5) * 1.4 +
 					corridorBand * state.corridor * 0.9 +
 					ambient * 0.45;
@@ -223,21 +225,23 @@ export class DancefloorSystem {
 	}
 }
 
-const REGION_COLORS = [
-	SIGNAL_COLORS.cyan,
-	SIGNAL_COLORS.electricBlue,
-	SIGNAL_COLORS.amber,
-	SIGNAL_COLORS.cyan,
-	SIGNAL_COLORS.violet,
-	SIGNAL_COLORS.electricBlue
-];
-
+/**
+ * A tile's colour for the current act.
+ *
+ * Regions sit at different points between the act's key and counter hues. As
+ * `alignment` resolves they converge on the key, which is the visual form of
+ * separate systems learning to behave as one.
+ */
 function pickColor(out: Color, region: number, state: ExperienceState) {
-	const divergent = REGION_COLORS[region % REGION_COLORS.length];
-	// Alignment pulls every region back to one shared signal color.
-	out.copy(divergent).lerp(SIGNAL_COLORS.cyan, state.alignment);
-	// Before the fracture the field is nearly uniform.
-	out.lerp(SIGNAL_COLORS.base, 1 - Math.max(state.fracture, state.alignment));
+	const t = state.territory;
+	const spread = REGION_MIX[region % REGION_MIX.length];
+
+	// Fracture pushes regions apart chromatically; alignment pulls them back.
+	const isolation = Math.max(state.fracture, 0.12) * (1 - state.alignment);
+	out.copy(t.key).lerp(t.counter, spread * isolation);
+
+	// A few regions carry the accent, so the field is never two hues only.
+	if (region % 3 === 2) out.lerp(t.accent, 0.4 * isolation);
 }
 
 const fract = (v: number) => v - Math.floor(v);

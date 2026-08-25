@@ -70,7 +70,7 @@ def clay_materials():
     visible rather than hidden by lighting.
     """
     made = {}
-    for name, value in (("clay", 0.34), ("clay_dark", 0.20), ("clay_light", 0.52)):
+    for name, value in (("clay", 0.34), ("clay_dark", 0.20), ("clay_light", 0.52), ("glow", 0.78)):
         mat = bpy.data.materials.new(f"GREY_{name}")
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
@@ -129,47 +129,102 @@ def build_structural_columns(mats, col):
     return _mesh("STRUCTURAL_COLUMNS", bm, mats["clay"], col)
 
 
-def build_ceiling_architecture(mats, col):
+def build_upper_environment(mats, col):
     """
-    Overhead grid and structural fins. Gives the upper half of the frame
-    something to be, which is where most of the old void sat.
+    The upper world.
+
+    Explicitly *not* a conventional ceiling. Looking upward has to reveal a
+    world, not a lid — fragmented overhead grids, suspended structures and
+    glowing apertures, with the volume left open so architecture dissolves
+    upward into coloured atmosphere rather than stopping against a slab.
     """
     bm = bmesh.new()
     z = HALL["ceiling_z"]
     hx, hy = HALL["half_x"], HALL["half_y"]
-
-    # Coffered slab, split around the oculus so the opening stays clear.
     o = OCULUS_HALF
-    for gx in range(-4, 5):
-        x = gx * 24.0
-        if abs(x) < o:
-            # Beam runs only outside the opening.
-            for sign in (-1, 1):
-                length = hy - o
-                _box(bm, (2.2, length, 2.6), (x, sign * (o + length / 2), z + 1.3))
-        else:
-            _box(bm, (2.2, hy * 2, 2.6), (x, 0, z + 1.3))
-    for gy in range(-4, 5):
-        y = gy * 24.0
-        if abs(y) < o:
-            for sign in (-1, 1):
-                length = hx - o
-                _box(bm, (length, 2.2, 2.6), (sign * (o + length / 2), y, z + 1.3))
-        else:
-            _box(bm, (hx * 2, 2.2, 2.6), (0, y, z + 1.3))
 
-    # A thickened rim around the opening, so it reads as built rather than missing.
-    for sign in (-1, 1):
-        _box(bm, (o * 2 + 8, 4.0, 5.0), (0, sign * (o + 2), z + 2.5))
-        _box(bm, (4.0, o * 2 + 8, 5.0), (sign * (o + 2), 0, z + 2.5))
+    # Overhead grids in fragments, at several heights, never a continuous plane.
+    for i, (gz, span, step, thick) in enumerate((
+        (z - 26, 0.55, 30.0, 1.6),
+        (z - 8, 0.75, 26.0, 2.0),
+        (z + 14, 0.45, 34.0, 2.4),
+    )):
+        for gx in range(-3, 4):
+            x = gx * step
+            if abs(x) < o * 0.8:
+                continue
+            _box(bm, (2.0, hy * 2 * span, thick), (x, (i - 1) * 12.0, gz))
+        for gy in range(-3, 4):
+            y = gy * step
+            if abs(y) < o * 0.8:
+                continue
+            _box(bm, (hx * 2 * span, 2.0, thick), ((i - 1) * 10.0, y, gz))
 
-    # Structural fins hanging below the slab, outside the opening.
-    for i in range(-6, 7):
-        x = i * 15.0
-        if abs(x) < o + 4:
+    # Suspended structures hanging at varied depths, catching light from below.
+    for i in range(20):
+        a = _fract(math.sin(i * 21.7 + 3.3) * 43758.5453)
+        b = _fract(math.sin(i * 47.1 + 9.1) * 43758.5453)
+        x = (a - 0.5) * hx * 1.7
+        y = (b - 0.5) * hy * 1.7
+        if abs(x) < o and abs(y) < o:
             continue
-        _box(bm, (0.8, hy * 1.7, 5.0), (x, 0, z - 2.5))
+        drop = 8 + a * 26
+        _box(bm, (7 + b * 9, 7 + a * 9, drop), (x, y, z - drop / 2 + 4))
+
     return _mesh("CEILING_ARCHITECTURE", bm, mats["clay_light"], col)
+
+
+def build_translucent_masses(mats, col):
+    """
+    Backlit translucent volumes.
+
+    Large glazed masses that glow from within, so the environment is lit by its
+    own architecture rather than only by the Dancefloor.
+    """
+    bm = bmesh.new()
+    for x, y, z, w, d, h in (
+        (-78.0, 12.0, 26.0, 12.0, 40.0, 52.0),
+        (84.0, -30.0, 18.0, 14.0, 34.0, 40.0),
+        (20.0, 88.0, 30.0, 44.0, 12.0, 56.0),
+        (-40.0, -86.0, 22.0, 38.0, 10.0, 44.0),
+    ):
+        _box(bm, (w, d, h), (x, y, z + h / 2))
+    return _mesh("TRANSLUCENT_MASSES", bm, mats["glow"], col)
+
+
+def build_environment_light_structures(mats, col):
+    """
+    Luminous recesses, hidden linear lights, glowing joints and light wells.
+
+    These are the low- and medium-intensity architectural sources that give the
+    world its ambient colour. Without them the Dancefloor becomes the only
+    meaningful light and the frame collapses toward black.
+    """
+    bm = bmesh.new()
+    hx, hy = HALL["half_x"], HALL["half_y"]
+
+    # Continuous linear illumination along the perimeter, at three heights.
+    for level in (6.0, 30.0, 58.0):
+        for sign in (-1, 1):
+            _box(bm, (hx * 1.9, 1.2, 0.8), (0, sign * (hy - 10), level))
+            _box(bm, (1.2, hy * 1.9, 0.8), (sign * (hx - 10), 0, level))
+
+    # Light wells dropping into the floor around the fabric.
+    for i in range(12):
+        angle = (i / 12) * math.tau
+        r = 46.0
+        _box(bm, (5.0, 5.0, 0.6),
+             (math.cos(angle) * r, math.sin(angle) * r, HALL["floor_z"] + 0.4))
+
+    # Glowing apertures in the upper environment.
+    for i in range(8):
+        a = _fract(math.sin(i * 13.7) * 43758.5453)
+        angle = (i / 8) * math.tau
+        r = 70 + a * 24
+        _box(bm, (14.0, 14.0, 1.0),
+             (math.cos(angle) * r, math.sin(angle) * r, HALL["ceiling_z"] - 12 - a * 20))
+
+    return _mesh("ENVIRONMENT_LIGHT_STRUCTURES", bm, mats["glow"], col)
 
 
 def build_distant_platforms(mats, col):
@@ -307,7 +362,9 @@ def build(mats, parent_collection=None):
         "FLOOR_SECONDARY": build_floor_secondary(mats, col),
         "WALL_MASSES": build_wall_masses(mats, col),
         "STRUCTURAL_COLUMNS": build_structural_columns(mats, col),
-        "CEILING_ARCHITECTURE": build_ceiling_architecture(mats, col),
+        "CEILING_ARCHITECTURE": build_upper_environment(mats, col),
+        "TRANSLUCENT_MASSES": build_translucent_masses(mats, col),
+        "ENVIRONMENT_LIGHT_STRUCTURES": build_environment_light_structures(mats, col),
         "DISTANT_PLATFORMS": build_distant_platforms(mats, col),
         "BACKGROUND_TOWERS": build_background_towers(mats, col),
         "MID_TERRACES": build_mid_terraces(mats, col),

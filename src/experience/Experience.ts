@@ -17,6 +17,8 @@ import { World } from './World';
 
 export interface ExperienceOptions {
 	canvas: HTMLCanvasElement;
+	/** ?lighting=1 — bloom/fog/grain off, to prove the lighting stands alone. */
+	lightingQA?: boolean;
 	/** Called each frame with the derived state, for the debug overlay. */
 	onState?: (state: ExperienceState, stats: ExperienceStats) => void;
 }
@@ -34,6 +36,8 @@ export class Experience {
 	#state: ExperienceState;
 
 	#raf = 0;
+	#luminance = 0;
+	#luminanceTick = 0;
 	#lastTime = 0;
 	#running = false;
 	#onState?: (state: ExperienceState, stats: ExperienceStats) => void;
@@ -52,6 +56,8 @@ export class Experience {
 			this.#camera.camera,
 			this.#quality
 		);
+
+		if (options.lightingQA) this.#post.setLightingQA(true);
 
 		this.#state = deriveState(0, 0);
 
@@ -127,9 +133,18 @@ export class Experience {
 		if (this.#post.enabled) this.#post.render();
 		else this.#renderer.render(this.#world.scene, this.#camera.camera);
 
+		// Fog is atmosphere, not a way to hide empty space, so QA reduces it.
+		if (this.#post.lightingQA) this.#world.atmosphere.setFogScale(0.15);
+
 		this.#performance.sample(dt, now);
 
 		const info = this.#renderer.renderer.info;
+		// readPixels stalls, so only sample when someone is watching, and rarely.
+		this.#luminanceTick = (this.#luminanceTick + 1) % 30;
+		if (this.#onState && this.#luminanceTick === 0) {
+			this.#luminance = this.#renderer.sampleLuminance();
+		}
+
 		this.#onState?.(this.#state, {
 			fps: this.#performance.fps,
 			tier: this.#quality.tier,
@@ -138,7 +153,9 @@ export class Experience {
 			triangles: info.render.triangles,
 			ambientEvents: this.#world.living.events.length,
 			viewport: this.#view.viewport,
-			anchor: this.#camera.nearestAnchor(this.#state.progress).anchor
+			anchor: this.#camera.nearestAnchor(this.#state.progress).anchor,
+			luminance: this.#luminance,
+			lightingQA: this.#post.lightingQA
 		});
 	};
 
@@ -187,6 +204,9 @@ export interface ExperienceStats {
 	ambientEvents: number;
 	viewport: string;
 	anchor: string;
+	/** Mean luminance of the rendered frame, 0-1. The art-direction check. */
+	luminance: number;
+	lightingQA: boolean;
 }
 
 export { WebGLUnavailableError };

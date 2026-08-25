@@ -60,6 +60,7 @@ export class PostProcessingSystem {
 	#bloom: UnrealBloomPass | null = null;
 	#grade: ShaderPass | null = null;
 	#enabled: boolean;
+	#lightingQA = false;
 
 	constructor(
 		renderer: WebGLRenderer,
@@ -91,7 +92,25 @@ export class PostProcessingSystem {
 	}
 
 	get enabled() {
-		return this.#enabled;
+		return this.#enabled && !this.#lightingQA;
+	}
+
+	/**
+	 * Lighting QA: bloom off, fog reduced, no grain, no vignette.
+	 *
+	 * The scene must still show architectural legibility, visible materials,
+	 * coloured illumination, depth and separation. If it turns mostly black
+	 * without bloom, the lighting is wrong — bloom enhances emissive intensity,
+	 * it does not create the lighting design.
+	 */
+	setLightingQA(on: boolean) {
+		this.#lightingQA = on;
+		if (this.#bloom) this.#bloom.enabled = !on;
+		if (this.#grade) this.#grade.enabled = !on;
+	}
+
+	get lightingQA() {
+		return this.#lightingQA;
 	}
 
 	setSize(width: number, height: number, pixelRatio: number) {

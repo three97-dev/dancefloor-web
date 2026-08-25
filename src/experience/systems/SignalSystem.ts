@@ -44,7 +44,7 @@ export class SignalSystem {
 		const material = new PointsMaterial({
 			size: 0.4,
 			sizeAttenuation: true,
-			color: '#7fe4f0',
+			color: '#ffab3d',
 			transparent: true,
 			opacity: 0.9,
 			blending: AdditiveBlending,
@@ -128,7 +128,12 @@ export class SignalSystem {
 		const attr = this.points.geometry.getAttribute('position');
 		(attr.array as Float32Array).set(this.#positions);
 		attr.needsUpdate = true;
-		(this.points.material as PointsMaterial).opacity = 0.35 + traffic * 0.55;
+
+		const material = this.points.material as PointsMaterial;
+		material.opacity = 0.35 + traffic * 0.55;
+		// A moving light is a signal, and it carries the act's accent hue so the
+		// return path reads amber against blue-violet infrastructure.
+		material.color.copy(state.territory.accent);
 	}
 
 	dispose() {

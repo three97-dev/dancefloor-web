@@ -41,7 +41,11 @@ export type AmbientEventKind =
 	/** A signal disappears behind architecture and reappears elsewhere. */
 	| 'DISTANT_ROUTING'
 	/** A very subtle low-frequency illumination change across a region. */
-	| 'GRID_BREATH';
+	| 'GRID_BREATH'
+	/** Environmental illumination shifts hue slightly across a whole zone. */
+	| 'AMBIENT_COLOR_DRIFT'
+	/** Low-intensity light travels deep beneath the floor. */
+	| 'INFRASTRUCTURE_FLOW';
 
 export interface AmbientEvent {
 	readonly kind: AmbientEventKind;
@@ -52,6 +56,12 @@ export interface AmbientEvent {
 	readonly position: [number, number, number];
 	/** 0-1 envelope, computed per frame. */
 	intensity: number;
+	/**
+	 * Peak strength. Most events are barely perceptible: a world where
+	 * everything moves reads as animated, whereas a world where a few selected
+	 * things move unpredictably reads as alive.
+	 */
+	readonly amplitude: number;
 	/** Colour bias, -1 amber … 0 cyan … 1 violet. */
 	readonly hue: number;
 	/** Set when this event was spawned as a reaction to another. */
@@ -83,7 +93,11 @@ const FAMILIES: readonly FamilySpec[] = [
 	{ kind: 'SYSTEM_SETTLE', period: 23, duration: [5.0, 9.0], radius: [70, 200], height: [4, 40] },
 	{ kind: 'REFLECTION_PASS', period: 8, duration: [1.4, 2.6], radius: [12, 45], height: [1, 8] },
 	{ kind: 'DISTANT_ROUTING', period: 14, duration: [4.0, 7.0], radius: [80, 220], height: [0, 30], causal: true },
-	{ kind: 'GRID_BREATH', period: 19, duration: [7.0, 12.0], radius: [30, 110], height: [0, 1] }
+	{ kind: 'GRID_BREATH', period: 19, duration: [7.0, 12.0], radius: [30, 110], height: [0, 1] },
+	// Colour itself is ambient behaviour: the environment's hue must not be static.
+	{ kind: 'AMBIENT_COLOR_DRIFT', period: 21, duration: [8.0, 14.0], radius: [20, 140], height: [4, 50] },
+	// Deep beneath the floor, where the infrastructure keeps working unseen.
+	{ kind: 'INFRASTRUCTURE_FLOW', period: 10, duration: [5.0, 9.0], radius: [30, 150], height: [-30, -6], causal: true }
 ];
 
 /** REMOTE_RESPONSE is never scheduled directly — it only answers another event. */
@@ -129,7 +143,7 @@ export class LivingEnvironmentSystem {
 			event.age += dt;
 			// Asymmetric envelope: quick to arrive, slow to leave, like real systems.
 			const t = Math.min(1, event.age / event.duration);
-			event.intensity = Math.sin(Math.pow(t, 0.6) * Math.PI);
+			event.intensity = Math.sin(Math.pow(t, 0.6) * Math.PI) * event.amplitude;
 		}
 		this.#events = this.#events.filter((e) => e.age < e.duration);
 
@@ -172,9 +186,14 @@ export class LivingEnvironmentSystem {
 		const radius = spec.radius[0] + this.#random() * (spec.radius[1] - spec.radius[0]);
 		const height = spec.height[0] + this.#random() * (spec.height[1] - spec.height[0]);
 
+		// Roughly 70% very subtle, 20% clearly observable, 10% major.
+		const roll = this.#random();
+		const amplitude = roll < 0.7 ? 0.18 + this.#random() * 0.14 : roll < 0.9 ? 0.45 + this.#random() * 0.2 : 0.8 + this.#random() * 0.2;
+
 		const event: AmbientEvent = {
 			kind: cause ? 'REMOTE_RESPONSE' : spec.kind,
 			age: 0,
+			amplitude,
 			duration: spec.duration[0] + this.#random() * (spec.duration[1] - spec.duration[0]),
 			position: [Math.cos(angle) * radius, height, Math.sin(angle) * radius],
 			intensity: 0,
@@ -187,6 +206,19 @@ export class LivingEnvironmentSystem {
 		this.#recent.push(event.kind);
 		if (this.#recent.length > MEMORY) this.#recent.shift();
 		return event;
+	}
+
+	/**
+	 * Aggregate hue drift currently requested by AMBIENT_COLOR_DRIFT events.
+	 * Small by design — the environment breathes colour, it does not cycle it.
+	 */
+	get colorDrift(): number {
+		let drift = 0;
+		for (const event of this.#events) {
+			if (event.kind !== 'AMBIENT_COLOR_DRIFT') continue;
+			drift += event.intensity * event.hue;
+		}
+		return Math.max(-1, Math.min(1, drift));
 	}
 
 	/** Aggregate illumination contributed by ambient activity near a point. */

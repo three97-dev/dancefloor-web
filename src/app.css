@@ -1,13 +1,18 @@
 /* Base: charcoal, black, dark grey. The Dancefloor supplies the colour. */
 :root {
-	--ink-900: #05070a;
-	--ink-800: #0a0d11;
-	--ink-700: #12171c;
-	--ink-600: #1b2126;
-	--line: rgb(255 255 255 / 9%);
-	--text: #e8edf1;
-	--text-dim: #98a5b0;
-	--signal: #39c6d6;
+	/*
+		Deep indigo rather than near-black. The page is the same world the canvas
+		renders, so a black DOM ground under a luminous environment reproduces the
+		exact failure the art direction rules out.
+	*/
+	--ink-900: #0b1120;
+	--ink-800: #101a33;
+	--ink-700: #151a3a;
+	--ink-600: #1f2750;
+	--line: rgb(150 180 255 / 13%);
+	--text: #eaf0f8;
+	--text-dim: #9fb0cc;
+	--signal: #31e0f0;
 
 	--nav-h: 4.25rem;
 	--gutter: clamp(1.25rem, 4vw, 4rem);

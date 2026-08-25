@@ -1,13 +1,14 @@
 /**
- * Atmosphere and darkness.
+ * Atmosphere and colour.
  *
- * Pure black is forbidden as an environmental shortcut: black must represent
- * depth, never absence. So the scene is never cleared to nothing — it is cleared
- * to a graded volume that keeps charcoal, blue-black and warm black separable,
- * and that still reads as air when there is nothing else in frame.
+ * The environment must read first as *coloured architectural atmosphere* and
+ * only second as luminous digital objects. So the volume the world sits inside
+ * is never neutral and never near-black: it carries the act's colour territory,
+ * a horizon band for far architecture to dissolve into, and a warmer floor of
+ * light where the Dancefloor's own illumination spills upward.
  *
- * Even intentional negative space has to carry atmospheric gradient, so that a
- * copy-safe area is dark *and* clearly part of a place.
+ * The hard test: if disabling bloom turns the scene mostly black, the lighting
+ * is wrong. Nothing here depends on bloom.
  */
 
 import {
@@ -22,18 +23,6 @@ import {
 import type { QualitySettings } from '../quality';
 import type { ExperienceState } from '../scroll/ExperienceTimeline';
 
-/** Distinct blacks. Keeping them separable is what stops the world flattening. */
-export const DARKS = {
-	/** Deepest, coolest — the far volume above and beyond the architecture. */
-	deep: new Color('#070b10'),
-	/** Mid air, faintly blue. */
-	air: new Color('#101821'),
-	/** Warm black, used low where the floor's own light spills. */
-	warm: new Color('#14140f'),
-	/** Atmospheric grey — the haze band that far geometry dissolves into. */
-	haze: new Color('#2b3742')
-} as const;
-
 const VERTEX = /* glsl */ `
 	varying vec3 vWorld;
 	void main() {
@@ -43,29 +32,53 @@ const VERTEX = /* glsl */ `
 `;
 
 const FRAGMENT = /* glsl */ `
-	uniform vec3 uDeep;
-	uniform vec3 uAir;
-	uniform vec3 uWarm;
+	uniform vec3 uAmbient;
 	uniform vec3 uHaze;
+	uniform vec3 uKey;
+	uniform vec3 uCounter;
+	uniform vec3 uAccent;
 	uniform float uHorizon;
-	uniform float uHazeStrength;
+	uniform float uLuminosity;
+	uniform float uUnderfloor;
 	varying vec3 vWorld;
 
 	void main() {
-		float h = normalize(vWorld).y;
+		vec3 dir = normalize(vWorld);
+		float h = dir.y;
 
-		// Below the horizon the air warms slightly, as if lit from the floor.
-		vec3 lower = mix(uWarm, uAir, smoothstep(-1.0, 0.0, h));
-		// Above it, the volume cools and deepens with altitude.
-		vec3 upper = mix(uAir, uDeep, smoothstep(0.0, 0.75, h));
+		// Upper volume: the ambient wash deepens with altitude but never reaches
+		// black — structures are meant to dissolve upward into coloured air, not
+		// vanish against a lid.
+		vec3 upper = mix(uAmbient, uAmbient * 0.78 + uHaze * 0.10, smoothstep(0.0, 0.9, h));
+
+		// Below the horizon the environment picks up the floor's own light.
+		vec3 lower = mix(uAmbient, uAmbient * 0.85 + uKey * 0.14, smoothstep(0.0, -0.6, h));
+
 		vec3 color = h < 0.0 ? lower : upper;
 
-		// A haze band sits on the horizon, so far architecture has something to
-		// dissolve into rather than simply ending.
-		float band = exp(-pow((h - uHorizon) * 4.5, 2.0));
-		color = mix(color, uHaze, band * uHazeStrength);
+		// Beneath the floor the world is not a black tunnel: it is one of the
+		// richest colour environments in the site, layered by depth — cyan and
+		// blue overhead, violet through the middle, amber and coral far below.
+		if (uUnderfloor > 0.0) {
+			float depth = smoothstep(0.1, -0.9, h);
+			vec3 deep = mix(uCounter * 0.5, uKey * 0.6, depth);
+			deep += uAccent * depth * 0.55;
+			color = mix(color, color * 0.7 + deep, uUnderfloor * depth);
+		}
 
-		gl_FragColor = vec4(color, 1.0);
+		// The horizon band: far architecture resolves into this rather than
+		// disappearing, which is what keeps the horizon from going featureless.
+		float band = exp(-pow((h - uHorizon) * 3.2, 2.0));
+		color = mix(color, uHaze, band * 0.85);
+
+		// Two large off-camera sources, on opposite sides, in complementary hues.
+		// This is what stops any frame reading as a single flat colour.
+		float keySide = smoothstep(-0.35, 0.85, dot(dir, normalize(vec3(-0.8, 0.25, -0.5))));
+		float counterSide = smoothstep(-0.3, 0.9, dot(dir, normalize(vec3(0.85, 0.15, 0.45))));
+		color += uKey * keySide * 0.30;
+		color += uCounter * counterSide * 0.24;
+
+		gl_FragColor = vec4(color * uLuminosity, 1.0);
 	}
 `;
 
@@ -73,16 +86,20 @@ export class AtmosphereSystem {
 	readonly dome: Mesh;
 	#material: ShaderMaterial;
 	#fog: FogExp2;
+	#fogColor = new Color();
+	#fogScale = 1;
 
 	constructor(scene: Scene, _quality: QualitySettings) {
 		this.#material = new ShaderMaterial({
 			uniforms: {
-				uDeep: { value: DARKS.deep.clone() },
-				uAir: { value: DARKS.air.clone() },
-				uWarm: { value: DARKS.warm.clone() },
-				uHaze: { value: DARKS.haze.clone() },
+				uAmbient: { value: new Color('#151a3a') },
+				uHaze: { value: new Color('#2a3a72') },
+				uKey: { value: new Color('#31e0f0') },
+				uCounter: { value: new Color('#e0479f') },
+				uAccent: { value: new Color('#ffab3d') },
+				uUnderfloor: { value: 0 },
 				uHorizon: { value: 0.02 },
-				uHazeStrength: { value: 0.5 }
+				uLuminosity: { value: 1 }
 			},
 			vertexShader: VERTEX,
 			fragmentShader: FRAGMENT,
@@ -91,20 +108,22 @@ export class AtmosphereSystem {
 			fog: false
 		});
 
-		// Large enough to sit outside the world, small enough to stay in the far
-		// plane. It never writes depth, so it cannot occlude anything.
-		this.dome = new Mesh(new SphereGeometry(600, 32, 24), this.#material);
+		this.dome = new Mesh(new SphereGeometry(600, 48, 32), this.#material);
 		this.dome.name = 'ATMOSPHERE';
 		this.dome.frustumCulled = false;
 		this.dome.renderOrder = -1;
 		scene.add(this.dome);
 
-		// Exponential fog reads as air rather than as a fade to nothing, and its
-		// colour matches the horizon band so the two cannot disagree.
-		this.#fog = new FogExp2(DARKS.air.getHex(), 0.0075);
+		// Fog carries colour too: near is clear, mid picks up the territory, far
+		// resolves into luminous saturated haze.
+		this.#fog = new FogExp2(0x2a3a72, 0.0052);
 		scene.fog = this.#fog;
-		// Deliberately not null: clearing to nothing is what produces the void.
 		scene.background = null;
+	}
+
+	/** QA reduces fog, to prove depth comes from architecture rather than haze. */
+	setFogScale(scale: number) {
+		this.#fogScale = scale;
 	}
 
 	/** Follows the camera so the volume never has an edge the visitor can reach. */
@@ -113,11 +132,26 @@ export class AtmosphereSystem {
 	}
 
 	update(state: ExperienceState) {
-		// Air thins as the camera climbs for the city reveal, and the haze band
-		// drops below the horizon so the world reads as being seen from above.
-		this.#fog.density = 0.0075 * state.fog;
-		this.#material.uniforms.uHorizon.value = 0.02 - state.city * 0.28;
-		this.#material.uniforms.uHazeStrength.value = 0.5 + state.city * 0.25;
+		const t = state.territory;
+		const u = this.#material.uniforms;
+
+		(u.uAmbient.value as Color).copy(t.ambient);
+		(u.uHaze.value as Color).copy(t.haze);
+		(u.uKey.value as Color).copy(t.key);
+		(u.uCounter.value as Color).copy(t.counter);
+		(u.uAccent.value as Color).copy(t.accent);
+		u.uUnderfloor.value = state.returnPath;
+
+		// The city reveal is the most luminous state of the site.
+		u.uLuminosity.value = 1 + state.city * 0.55 + state.alignment * 0.15;
+		// The haze band drops below the horizon as the camera climbs, so the
+		// world reads as being seen from above rather than across.
+		u.uHorizon.value = 0.02 - state.city * 0.3;
+
+		// Fog takes the haze colour, so distance and horizon can never disagree.
+		this.#fogColor.copy(t.haze);
+		this.#fog.color.copy(this.#fogColor);
+		this.#fog.density = 0.0052 * state.fog * this.#fogScale;
 	}
 
 	dispose() {

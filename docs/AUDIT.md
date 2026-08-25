@@ -381,3 +381,103 @@ stops. Well under the threshold where it would read as a bob.
   final materials land in Phase 8.
 - **Product surfaces, the three questions, no-copy moment, FAQ scroll handoff,
   final brand resolution.** Untouched — all downstream of the world.
+
+---
+
+## 11. Reconciliation with v5 — the art direction reverses
+
+*Master Website Execution Prompt v5 — Living Luminous Cyberpunk World* (53pp).
+
+### 11.1 This is a deliberate reversal, and it is worth stating plainly
+
+The previous brief said the world should be charcoal, black and dark grey, and
+listed **cyberpunk** and **nightclub** among the things to avoid. I desaturated
+the palette accordingly and wrote that decision into the code as a comment.
+
+v5's subtitle is *Living Luminous Cyberpunk World*. §4 names the aesthetic as
+**luminous cyberpunk architecture** — a pristine computational metropolis at
+night. Not dark, not dystopian, not nightclub, not dirty alley, but colourful,
+luminous and saturated. §71 makes it a hard acceptance criterion:
+
+> If a screenshot reads as **black background with neon objects**, it fails.
+
+The previous build was exactly that. Not through error — it was the correct
+answer to the previous brief — but it is now the named failure mode.
+
+### 11.2 What v5 validates
+
+Substantial parts of the last two passes are confirmed unchanged, and were not
+touched: the scroll choreography (§33 is identical to what was implemented), the
+desktop composition rhythm (§51 matches the layout table line for line),
+`WORLD_SHELL` (§14), the five landmarks (§25), `LivingEnvironmentSystem` (§26),
+copy-safe anchors (§52), responsive camera previs (§56), narrative/ambient time
+separation (§62) and greybox-first (§68).
+
+### 11.3 What changed
+
+| Area | Before | Now |
+| --- | --- | --- |
+| Palette | 7 desaturated hues | Tinted darks + 9 saturated illumination hues |
+| Colour model | Fixed per region | Per-act **colour territories**, blended across boundaries |
+| Atmosphere | Near-black gradient | Coloured ambient volume, horizon band, two complementary off-camera sources |
+| Lighting | Floor was effectively the only source | Hemisphere + ambient + key + complementary counter + warm underlight |
+| Shadows | Collapsed to neutral black | Tinted complement of the key light |
+| Tile body | `#14181c` near-black | `#333b47` gunmetal, so colour can register |
+| Structures | `#0e1216` | `#4a525e` cool concrete |
+| DOM ground | `#05070a` | `#0b1120` deep indigo |
+| Upper world | Coffered ceiling slab | Fragmented grids and suspended forms; volume left open |
+
+Colour now carries the argument directly: districts are chromatically isolated
+during Fracture and share surfaces by One Plane, so the palette itself performs
+fragmentation resolving into coordination.
+
+### 11.4 The failure test is now measured, not argued
+
+§71 is a subjective-sounding criterion, so it is instrumented. The debug overlay
+samples three scanlines of the framebuffer and reports mean frame luminance,
+flagging anything under 12%.
+
+That immediately proved the first attempt still failed:
+
+| Act | Before | After |
+| --- | --- | --- |
+| Field at rest | 8.3% | 13.8% |
+| ROAD | 8.1% | 14.7% |
+| The Rise | 4.6% | 12.1% |
+| One Plane | 8.4% | 17.1% |
+| **The City** | 12.0% | **26.4%** |
+
+The City is now the most luminous state of the site, which §48 requires and the
+previous build did not deliver.
+
+The cause of the first failure is worth recording: I used §11's *environmental
+darks* as the dominant ambient field. They are meant for shadowed structure. The
+ambient wash has to sit at genuine mid-values or the whole world is underexposed
+— which is §22's point, arrived at the hard way.
+
+A second finding followed: with the environment lifted, the Dancefloor became a
+dark island in a bright world — the same failure inverted. Tile illumination now
+rises with `alignment` and `city`, so the fabric participates in the coordinated
+state rather than sitting out the most luminous moment of the site.
+
+### 11.5 New QA modes
+
+- `?debug=1` now reports anchor, viewport, tier, DPR, draw calls, triangles,
+  active ambient events and mean luminance.
+- `?lighting=1` implements §69: bloom off, fog reduced to 15%, no grain, no
+  vignette. If the environment turns mostly black without bloom, the lighting is
+  wrong.
+
+### 11.6 Still open
+
+- **The world is in Blender, not the browser.** Unchanged and now the single
+  largest gap: the runtime renders the tile field, towers, conduits and
+  atmosphere. §10's balance — 35–45% coloured ambient environment, 15–25%
+  illuminated architectural surfaces — cannot be met until `WORLD_SHELL` is
+  exported as GLB and loaded. Right now the field floats in a coloured volume
+  rather than a black one, which is better but not the target.
+- **Underfloor** sits at 9.2% and §39 wants it among the richest colour
+  environments. Depth-layered colour is in; it needs the real infrastructure
+  geometry to land.
+- Product surfaces, the three questions, FAQ scroll handoff, final 3×3
+  resolution, 8 of 11 QA viewports.

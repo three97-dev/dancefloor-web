@@ -32,8 +32,10 @@
 	onMount(() => {
 		let experience: Experience | undefined;
 		try {
+			const params = new URLSearchParams(window.location.search);
 			experience = new Experience({
 				canvas,
+				lightingQA: params.get('lighting') === '1',
 				onState: (next, s) => {
 					if (!debug) return;
 					snapshot = next;
@@ -94,6 +96,12 @@
 		<div><b>tier / dpr</b> {stats?.tier ?? '-'} / {stats?.pixelRatio.toFixed(2) ?? '-'}</div>
 		<div><b>draws / tris</b> {stats?.drawCalls ?? 0} / {((stats?.triangles ?? 0) / 1000).toFixed(0)}k</div>
 		<div><b>ambient events</b> {stats?.ambientEvents ?? 0}</div>
+		<div class:warn={(stats?.luminance ?? 0) < 0.12}>
+			<b>luminance</b> {((stats?.luminance ?? 0) * 100).toFixed(1)}%{(stats?.luminance ?? 0) < 0.12 ? ' — too dark' : ''}
+		</div>
+		{#if stats?.lightingQA}
+			<div><b>mode</b> lighting QA</div>
+		{/if}
 		<hr />
 		<div><b>fracture</b> {snapshot.fracture.toFixed(2)}</div>
 		<div><b>terrain</b> {snapshot.terrain.toFixed(2)}</div>
@@ -156,6 +164,11 @@
 		font-weight: 500;
 		display: inline-block;
 		min-width: 6.5rem;
+	}
+
+	.debug .warn,
+	.debug .warn b {
+		color: #ff8f7a;
 	}
 
 	.debug hr {

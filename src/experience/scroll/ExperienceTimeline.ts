@@ -6,6 +6,7 @@
  */
 
 import { ACTS, SECTIONS } from '$content/site';
+import { blendTerritory, TERRITORIES, type ColorTerritory } from '../palette';
 import type { ActId, Section } from '$content/types';
 
 export interface ExperienceState {
@@ -30,6 +31,27 @@ export interface ExperienceState {
 	city: number;
 	/** Fog density multiplier. */
 	fog: number;
+	/**
+	 * The colour world at this moment, blended across the act boundary.
+	 *
+	 * Colour progresses continuously with the camera. A hard palette swap at an
+	 * act boundary would read as the scene cut the whole experience forbids.
+	 */
+	territory: ColorTerritory;
+}
+
+/** Acts in order, so a territory can blend into the one that follows it. */
+const ACT_ORDER = ACTS.map((a) => a.id);
+
+function territoryAt(progress: number, act: ActId): ColorTerritory {
+	const index = ACT_ORDER.indexOf(act);
+	const next = ACT_ORDER[Math.min(ACT_ORDER.length - 1, index + 1)];
+	const [start, end] = ACT_RANGES[act];
+	const local = end === start ? 0 : (progress - start) / (end - start);
+	// Blend only over the last third of an act, so each territory has time to
+	// establish itself before it starts becoming the next one.
+	const t = Math.max(0, (local - 0.66) / 0.34);
+	return blendTerritory(TERRITORIES[act], TERRITORIES[next], Math.min(1, t));
 }
 
 /**
@@ -123,7 +145,8 @@ export function deriveState(progress: number, elapsed: number): ExperienceState 
 		alignment: ramp(p, alignIn, alignOut),
 		city: ramp(p, cityIn, cityOut),
 		// Air thins as the camera climbs out of the field for the city reveal.
-		fog: 1 - ramp(p, cityIn, cityOut) * 0.65
+		fog: 1 - ramp(p, cityIn, cityOut) * 0.65,
+		territory: territoryAt(p, activeAct)
 	};
 }
 

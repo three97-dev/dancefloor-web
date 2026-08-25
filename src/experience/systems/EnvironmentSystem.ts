@@ -35,10 +35,12 @@ export class EnvironmentSystem {
 		// Isolated structures during Fracture; neighbourhoods during The city.
 		this.#towerCount = Math.round(24 * quality.underfloorDensity + 8);
 		const towerGeo = new BoxGeometry(1.6, 1, 1.6);
+		// Medium-value cool concrete. Structures must be able to receive coloured
+		// environmental light; near-black masses simply swallow it.
 		const towerMat = new MeshStandardMaterial({
-			color: '#0e1216',
-			roughness: 0.55,
-			metalness: 0.7
+			color: '#4a525e',
+			roughness: 0.62,
+			metalness: 0.25
 		});
 		this.#towers = new InstancedMesh(towerGeo, towerMat, this.#towerCount);
 		this.#towers.name = 'TOWERS';
@@ -50,9 +52,9 @@ export class EnvironmentSystem {
 		this.#conduitCount = Math.round(18 * quality.underfloorDensity + 6);
 		const conduitGeo = new CylinderGeometry(0.09, 0.09, span * 2, 6);
 		const conduitMat = new MeshStandardMaterial({
-			color: '#141a1f',
-			roughness: 0.7,
-			metalness: 0.5
+			color: '#3d4a5c',
+			roughness: 0.5,
+			metalness: 0.45
 		});
 		this.#conduits = new InstancedMesh(conduitGeo, conduitMat, this.#conduitCount);
 		this.#conduits.name = 'UNDERFLOOR';
