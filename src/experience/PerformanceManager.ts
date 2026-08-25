@@ -45,7 +45,11 @@ export class PerformanceManager {
 		return this.#quality;
 	}
 
-	/** @param dt seconds, @param now performance.now() milliseconds */
+	/**
+	 * @param dt true seconds since the last frame — never the clamped
+	 * simulation delta, or slow frames are invisible to this monitor
+	 * @param now performance.now() milliseconds
+	 */
 	sample(dt: number, now: number) {
 		this.#accum += dt;
 		this.#frames++;

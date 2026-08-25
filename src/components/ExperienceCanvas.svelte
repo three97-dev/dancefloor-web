@@ -22,6 +22,16 @@
 
 	let { debug = false }: Props = $props();
 
+	/**
+	 * The overlay's own view of the debug flag.
+	 *
+	 * The prop arrives from the layout's `onMount`, which runs *after* this
+	 * child mounts, so anything reading it during setup sees `false`. Reading
+	 * the URL here keeps the overlay, the luminance probe and the bisect flags
+	 * consistent with each other.
+	 */
+	let showDebug = $state(false);
+
 	let canvas: HTMLCanvasElement;
 	let failed = $state(false);
 	/** Which act's fallback still to show when WebGL is unavailable. */
@@ -33,15 +43,18 @@
 		let experience: Experience | undefined;
 		try {
 			const params = new URLSearchParams(window.location.search);
+			showDebug = params.get('debug') === '1';
 			experience = new Experience({
 				canvas,
 				lightingQA: params.get('lighting') === '1',
 				// Read from the URL rather than the prop: child components mount
 				// before their parent, so the prop is still false at this point.
 				debug: params.get('debug') === '1',
+				skip: (params.get('off') ?? '').split(',').filter(Boolean),
+				noShadow: params.get('noshadow') === '1',
 				base,
 				onState: (next, s) => {
-					if (!debug) return;
+					if (!showDebug) return;
 					snapshot = next;
 					stats = s;
 				}
@@ -88,7 +101,7 @@
 	</picture>
 {/if}
 
-{#if debug && snapshot}
+{#if showDebug && snapshot}
 	<aside class="debug">
 		<div><b>act</b> {snapshot.activeAct}</div>
 		<div><b>progress</b> {snapshot.progress.toFixed(4)}</div>

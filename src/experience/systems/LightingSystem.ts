@@ -1,11 +1,20 @@
 /**
- * Environmental lighting.
+ * Architectural lighting.
  *
- * The Dancefloor is *not* the only meaningful light source. It stays special
- * because its activity carries semantic meaning, not because everything else is
- * dark. So the world gets broad architectural illumination in complementary
- * pairs — cyan against magenta, blue against amber — and shadows that fall to a
- * tinted colour rather than collapsing to neutral black.
+ * Three layers, as a lighting designer would treat a real venue:
+ *
+ *   1. Architectural ambient — makes the building legible at all.
+ *   2. Integrated architectural light — practicals physically built into the
+ *      coves, reveals, canopy panels and rails of each space.
+ *   3. Dancefloor and signal light — narrative, dynamic, semantic.
+ *
+ * The Dancefloor is special because its activity carries meaning, not because
+ * everything else is dark. The acceptance test: with the floor switched off, a
+ * photographer should still be able to expose the building.
+ *
+ * Practicals are drawn from a per-space rig and assigned to a bounded pool, so
+ * an enclosed interior can be properly lit without the light count growing with
+ * the size of the venue.
  */
 
 import {
@@ -14,48 +23,57 @@ import {
 	DirectionalLight,
 	HemisphereLight,
 	PointLight,
+	Vector3,
 	type Scene
 } from 'three';
+import type { ActId } from '$content/types';
+import { PRACTICAL_GAIN, RIGS, RIG_BUDGET, type PracticalSpec } from '../lighting-design';
 import { shadowFor } from '../palette';
 import type { QualitySettings } from '../quality';
 import type { ExperienceState } from '../scroll/ExperienceTimeline';
 
-export class LightingSystem {
-	/** Broad coloured fill — the bulk of the environment's readability. */
-	#hemi: HemisphereLight;
-	/** Lifts absolute shadow off black so no surface is ever unreadable. */
-	#ambient: AmbientLight;
-	/** Key: the act's dominant illumination. */
-	#key: DirectionalLight;
-	/** Counter-light in the complementary hue, from the opposite side. */
-	#counter: DirectionalLight;
-	/** Warm lower-level system, providing separation from the cool architecture. */
-	#under: PointLight | null = null;
-	/** The floor's own spill. */
-	#floor: PointLight | null = null;
+/** Acts in order, so a rig can crossfade into the one that follows it. */
+const ACT_ORDER: ActId[] = [
+	'ACT_I_FIELD_AT_REST',
+	'ACT_II_FRACTURE',
+	'ACT_III_THE_PATCH',
+	'ACT_IV_THE_RISE',
+	'ACT_V_RETURN_PATH',
+	'ACT_VI_ONE_PLANE',
+	'ACT_VII_THE_CITY'
+];
 
-	/** Visible physical sources built into the architecture. */
-	#practicals: PointLight[] = [];
+interface Candidate {
+	spec: PracticalSpec;
+	weight: number;
+	distance: number;
+}
+
+export class LightingSystem {
+	/** Layer 1 — architectural ambient. */
+	#hemi: HemisphereLight;
+	#ambient: AmbientLight;
+	/** The room's direction. */
+	#key: DirectionalLight;
+	/** Complementary counter-light: no frame is ever a single hue. */
+	#counter: DirectionalLight;
+
+	/** Layer 2 — a bounded pool the active rigs are assigned into. */
+	#pool: PointLight[] = [];
+	#budget: number;
 
 	#shadowTint = new Color();
-
-	#practical(color: string, x: number, y: number, z: number, intensity: number, distance: number) {
-		const light = new PointLight(color, intensity, distance, 2);
-		light.position.set(x, y, z);
-		return light;
-	}
+	#eye = new Vector3();
+	#candidates: Candidate[] = [];
+	/** Set by the QA mode that proves the venue survives without emissives. */
+	#practicalScale = 1;
 
 	constructor(scene: Scene, quality: QualitySettings) {
-		// LAYER 1 — architectural ambient light. This is what makes the building
-		// legible, and it has to be strong enough that a photographer could
-		// expose the venue with the Dancefloor switched off. Once the world is a
-		// real enclosed building rather than objects under an open sky, the
-		// environment can no longer supply this on its own.
+		// Strong enough that the interiors are legible without the floor. Once
+		// the world became an enclosed building this stopped being optional.
 		this.#hemi = new HemisphereLight('#3a4a9e', '#241a3d', 4.2);
 		scene.add(this.#hemi);
 
-		// Deliberately not zero: this is what keeps shadowed architecture legible
-		// and stops the frame resolving as black-plus-neon.
 		this.#ambient = new AmbientLight('#2b3566', 2.4);
 		scene.add(this.#ambient);
 
@@ -64,66 +82,42 @@ export class LightingSystem {
 		this.#key.castShadow = quality.shadows;
 		if (quality.shadows) {
 			this.#key.shadow.mapSize.set(quality.shadowMapSize, quality.shadowMapSize);
-			this.#key.shadow.camera.far = 320;
-			this.#key.shadow.camera.left = -120;
-			this.#key.shadow.camera.right = 120;
-			this.#key.shadow.camera.top = 120;
-			this.#key.shadow.camera.bottom = -120;
-			this.#key.shadow.bias = -0.0009;
+			this.#key.shadow.camera.far = 420;
+			this.#key.shadow.camera.left = -160;
+			this.#key.shadow.camera.right = 160;
+			this.#key.shadow.camera.top = 160;
+			this.#key.shadow.camera.bottom = -160;
+			this.#key.shadow.bias = -0.0011;
 		}
 		scene.add(this.#key);
 
-		// Complementary, and never shadow-casting: its job is colour separation.
 		this.#counter = new DirectionalLight('#e0479f', 0.9);
 		this.#counter.position.set(70, 30, 55);
 		scene.add(this.#counter);
 
-		if (quality.maxLights >= 4) {
-			this.#under = new PointLight('#ffab3d', 26, 140, 2);
-			this.#under.position.set(0, -6, -10);
-			scene.add(this.#under);
-
-			this.#floor = new PointLight('#31e0f0', 18, 90, 2);
-			this.#floor.position.set(0, 1.6, 0);
-			scene.add(this.#floor);
-
-			// LAYER 2 — integrated architectural light. Emissive materials do not
-			// illuminate anything in WebGL, so the building's own coves, reveals
-			// and canopy panels get approximated light contributions. Without
-			// these the architecture is visible but not lit *by itself*.
-			this.#practicals = [
-				// Under the canopy, washing the central hall.
-				this.#practical('#31e0f0', 0, 30, 0, 140, 320),
-				// Warm hospitality light at the arrival threshold, so not every
-				// source in the venue is blue or magenta. Arrival sits at Blender
-				// y = +72, which is -Z here — the axis flip is easy to get wrong
-				// and puts the light on the opposite side of the building.
-				this.#practical('#ffc27a', 0, 4.5, -66, 90, 110),
-				// Second warm source deeper in the threshold, washing the soffit.
-				this.#practical('#ffb877', 0, 5.5, -46, 70, 90),
-				// Fill inside the central hall at gallery height.
-				this.#practical('#4a63c8', 0, 12, -10, 120, 200),
-				// A warm pool at the Observatory deck.
-				this.#practical('#ffb877', 0, 32, 74, 55, 70),
-				// Cool wash down the Guidance canyon.
-				this.#practical('#a55cf5', 96, 18, 0, 90, 140),
-				// Cyan over the coverage terrace.
-				this.#practical('#31e0f0', -96, 22, 0, 90, 140)
-			];
-			for (const light of this.#practicals) scene.add(light);
+		this.#budget = RIG_BUDGET[quality.tier];
+		for (let i = 0; i < this.#budget; i++) {
+			// Always visible, never toggled. Changing the *number* of visible
+			// lights changes the shader permutation, so Three.js recompiles every
+			// material in the scene — every frame, if the pool is reassigned per
+			// frame. An unused slot is silenced with zero intensity instead.
+			const light = new PointLight('#ffffff', 0, 100, 2);
+			this.#pool.push(light);
+			scene.add(light);
 		}
 	}
 
-	update(state: ExperienceState) {
+	/** QA: prove the venue is exposed by architecture rather than emissives. */
+	setPracticalScale(scale: number) {
+		this.#practicalScale = scale;
+	}
+
+	update(state: ExperienceState, cameraPosition: Vector3) {
 		const t = state.territory;
+		this.#eye.copy(cameraPosition);
 
 		this.#key.color.copy(t.key);
 		this.#counter.color.copy(t.counter);
-
-		// Ambient and hemisphere follow the territory, so the whole frame shifts
-		// colour with the act rather than only the emissive elements.
-		// Sky term takes the haze lifted toward the key, so upward-facing surfaces
-		// pick up the environment rather than falling to the ambient floor.
 		this.#hemi.color.copy(t.haze).lerp(t.key, 0.3);
 		this.#hemi.groundColor.copy(t.shadow);
 		this.#ambient.color.copy(t.ambient).lerp(t.haze, 0.45);
@@ -132,28 +126,71 @@ export class LightingSystem {
 		this.#shadowTint.copy(shadowFor(t.key));
 		this.#hemi.groundColor.lerp(this.#shadowTint, 0.5);
 
-		// The city reveal is the most luminous state; the observatory is calmer.
 		const lift = 1 + state.city * 0.5 - state.alignment * 0.12;
 		this.#hemi.intensity = 4.2 * lift;
 		this.#ambient.intensity = 2.4 * lift;
 		this.#key.intensity = 1.5 * lift;
 		this.#counter.intensity = 0.9 * lift;
 
-		if (this.#under) {
-			this.#under.color.copy(t.accent);
-			// The underfloor is one of the richest colour environments in the site.
-			this.#under.intensity = 26 + state.returnPath * 40;
+		this.#assignPracticals(state, t, lift);
+	}
+
+	/**
+	 * Chooses which practicals get pool slots this frame.
+	 *
+	 * Rigs from the current act and the one it is becoming are both candidates,
+	 * weighted by how far through the act the camera is. Within that set the
+	 * nearest lights win, because a cove on the far side of the venue
+	 * contributes nothing the visitor can see.
+	 */
+	#assignPracticals(state: ExperienceState, territory: ExperienceState['territory'], lift: number) {
+		const index = ACT_ORDER.indexOf(state.activeAct);
+		const next = ACT_ORDER[Math.min(ACT_ORDER.length - 1, index + 1)];
+		// Crossfade over the last third of an act, matching the colour blend.
+		const blend = Math.max(0, (state.actProgress - 0.66) / 0.34);
+
+		this.#candidates.length = 0;
+		this.#collect(RIGS[state.activeAct], 1 - blend * 0.5);
+		if (next !== state.activeAct && blend > 0) this.#collect(RIGS[next], blend);
+
+		this.#candidates.sort((a, b) => a.distance - b.distance);
+
+		for (let i = 0; i < this.#pool.length; i++) {
+			const light = this.#pool[i];
+			const candidate = this.#candidates[i];
+			if (!candidate) {
+				light.intensity = 0;
+				continue;
+			}
+
+			const { spec, weight } = candidate;
+			light.position.set(...spec.position);
+			light.distance = spec.distance;
+
+			// Roles take the act's colour; literals stay literal, which is how
+			// warm hospitality light survives a cyan act.
+			if (spec.color === 'key' || spec.color === 'counter' || spec.color === 'accent' || spec.color === 'haze') {
+				light.color.copy(territory[spec.color]);
+			} else {
+				light.color.set(spec.color);
+			}
+
+			light.intensity = spec.intensity * PRACTICAL_GAIN * weight * lift * this.#practicalScale;
 		}
-		if (this.#floor) {
-			this.#floor.color.copy(t.key);
-			this.#floor.intensity = 18 + state.corridor * 22 + state.terrain * 10;
-			this.#floor.position.z = -state.corridor * 14;
+	}
+
+	#collect(rig: readonly PracticalSpec[], weight: number) {
+		for (const spec of rig) {
+			const dx = spec.position[0] - this.#eye.x;
+			const dy = spec.position[1] - this.#eye.y;
+			const dz = spec.position[2] - this.#eye.z;
+			this.#candidates.push({ spec, weight, distance: Math.hypot(dx, dy, dz) });
 		}
 	}
 
 	dispose() {
-		for (const light of [this.#hemi, this.#ambient, this.#key, this.#counter, this.#under, this.#floor, ...this.#practicals]) {
-			light?.removeFromParent();
+		for (const light of [this.#hemi, this.#ambient, this.#key, this.#counter, ...this.#pool]) {
+			light.removeFromParent();
 		}
 	}
 }

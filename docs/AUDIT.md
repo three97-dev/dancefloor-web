@@ -689,3 +689,72 @@ brief describes and the measurements now point at.
 After that: textures and micro-detail (§22–24), bevels on visible structural
 edges, and the remaining pass conditions (§76 without the Dancefloor, §77
 without emissives, §78 the final photograph).
+
+---
+
+## 14. Per-space lighting, and four instrumentation bugs
+
+### 14.1 The lighting hierarchy is now per camera state
+
+`src/experience/lighting-design.ts` defines a rig per space — key, fill,
+practicals, accents and backlight — rather than one global setup. Each rig
+carries the practicals physically built into that space: warm hospitality coves
+at the arrival, gallery reveals in the central hall, cyan grazing the coverage
+terrace, violet washing the canyon, amber junctions in the infrastructure, and a
+warm pool on the Observatory deck.
+
+Practicals are assigned each frame from a bounded pool, choosing the nearest
+lights from the current rig and the one it is blending into. That keeps an
+enclosed interior properly lit without the light count growing with the venue.
+
+Warm and cool are deliberately mixed: not every source is blue or magenta, which
+is what stops the venue reading as a computer game.
+
+### 14.2 Four real bugs, all in the instruments
+
+**The frame-rate metric has been wrong since Phase 1.** `dt` is clamped to 50 ms
+so a backgrounded tab cannot fast-forward the ambient world — and that clamped
+value was also fed to the frame-rate monitor. The accumulator therefore never
+advances faster than the clamp, so a scene running at 2 FPS reports 47. Every
+"75 FPS" in this document before this section was measured with that bug
+present. True and clamped deltas are now separate.
+
+**Toggling `light.visible` recompiles every material.** Changing the *number* of
+visible lights changes the shader permutation, so reassigning the pool per frame
+triggered a full recompile per frame. Unused slots are now silenced with zero
+intensity instead.
+
+**The Dancefloor material was transparent but never translucent.** Its shader
+multiplied alpha by a value that is always 1, while transparency disabled
+early-z and forced back-to-front sorting across 2,304 instances. Now opaque.
+
+**A canvas created at zero size never recovered.** A page opened in a background
+tab reports a zero viewport, so the renderer was sized 0×0 and no resize event
+ever arrived to correct it. The resize path now bails and retries, and listens
+for `visibilitychange`.
+
+### 14.3 A false alarm worth recording
+
+Chasing what looked like a catastrophic collapse to 2 FPS cost several steps. It
+was not real: the browser tab had been navigated and reloaded roughly twenty
+times and had exhausted its WebGL contexts. A clean tab measured **75.4 FPS on
+the same commit**, and `/pricing` — which renders the same world through the same
+layout — measured 75.0 FPS throughout.
+
+The lesson is procedural rather than technical: when a metric moves by an order
+of magnitude with no corresponding change, suspect the instrument before the
+subject. That is the second time this session the instrument was the fault.
+
+`?off=tiles,lighting,env,signals,living,shell,atmosphere` and `?noshadow=1` were
+added to bisect frame cost directly rather than by inference, and they are what
+established the render itself was not the problem.
+
+### 14.4 Open
+
+- **The lighting calibration is not finished.** The rigs are structurally right
+  and the arrival now reads as warm washes rather than the point-light bulbs the
+  first calibration produced, but the numbers were tuned against measurements
+  taken in a degraded tab and need redoing where the pane renders reliably.
+- The central frame still reads flat in the hero composition — a large facade
+  surface lit evenly, with no falloff across it.
+- §76 (hide the Dancefloor) and §77 (disable emissives) have not been run.

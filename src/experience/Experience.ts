@@ -24,6 +24,10 @@ export interface ExperienceOptions {
 	base?: string;
 	/** Enables the luminance probe, which needs a preserved drawing buffer. */
 	debug?: boolean;
+	/** ?off=tiles,lighting — skip systems, to bisect frame cost. */
+	skip?: readonly string[];
+	/** ?noshadow=1 — drop the shadow pass. */
+	noShadow?: boolean;
 	/** Called each frame with the derived state, for the debug overlay. */
 	onState?: (state: ExperienceState, stats: ExperienceStats) => void;
 }
@@ -43,6 +47,7 @@ export class Experience {
 
 	#raf = 0;
 	#luminance = 0;
+	#awaitingSize = false;
 	#luminanceTick = 0;
 	#lastTime = 0;
 	#running = false;
@@ -64,6 +69,9 @@ export class Experience {
 		);
 
 		if (options.lightingQA) this.#post.setLightingQA(true);
+
+		if (options.skip?.length) for (const name of options.skip) this.#world.skip.add(name);
+		if (options.noShadow) this.#renderer.renderer.shadowMap.enabled = false;
 
 		this.#state = deriveState(0, 0);
 
@@ -94,6 +102,9 @@ export class Experience {
 		this.#resize();
 		window.addEventListener('resize', this.#resize);
 		window.addEventListener('orientationchange', this.#resize);
+		// A page opened in a background tab reports a zero viewport, which would
+		// leave the canvas 0x0 with no resize event ever arriving to correct it.
+		document.addEventListener('visibilitychange', this.#resize);
 		if (!this.#view.touch) window.addEventListener('pointermove', this.#onPointerMove);
 
 		this.start();
@@ -131,8 +142,14 @@ export class Experience {
 		if (!this.#running) return;
 		this.#raf = requestAnimationFrame(this.#tick);
 
-		// Clamp dt so a backgrounded tab does not fast-forward the ambient world.
-		const dt = Math.min(0.05, (now - this.#lastTime) / 1000);
+		// True frame time, and a clamped copy for simulation.
+		//
+		// These must stay separate: the clamp stops a backgrounded tab
+		// fast-forwarding the ambient world, but feeding it to the frame-rate
+		// monitor makes a 2 FPS scene report 47, because the accumulator only
+		// ever advances by the clamp. That hid a real performance collapse.
+		const realDt = (now - this.#lastTime) / 1000;
+		const dt = Math.min(0.05, realDt);
 		this.#lastTime = now;
 
 		this.#renderer.beginFrame();
@@ -146,7 +163,7 @@ export class Experience {
 		// The atmosphere volume travels with the camera, so it has no reachable edge.
 		const eye = this.#camera.camera.position;
 		this.#world.atmosphere.setCenter(eye.x, eye.y, eye.z);
-		this.#world.update(dt, this.#state);
+		this.#world.update(dt, this.#state, eye);
 		this.#post.update(this.#state);
 
 		if (this.#post.enabled) this.#post.render();
@@ -155,7 +172,7 @@ export class Experience {
 		// Fog is atmosphere, not a way to hide empty space, so QA reduces it.
 		if (this.#post.lightingQA) this.#world.atmosphere.setFogScale(0.15);
 
-		this.#performance.sample(dt, now);
+		this.#performance.sample(realDt, now);
 
 		const info = this.#renderer.renderer.info;
 		// readPixels stalls, so only sample when someone is watching, and rarely.
@@ -188,6 +205,20 @@ export class Experience {
 
 	#resize = () => {
 		const next = readViewportState();
+
+		// Nothing can be sized against a zero viewport. Bail and try again on
+		// the next frame rather than baking a dead 0x0 canvas.
+		if (next.width === 0 || next.height === 0) {
+			if (!this.#awaitingSize) {
+				this.#awaitingSize = true;
+				requestAnimationFrame(() => {
+					this.#awaitingSize = false;
+					this.#resize();
+				});
+			}
+			return;
+		}
+
 		const classChanged = next.camera !== this.#view.camera;
 		this.#view = next;
 
@@ -207,6 +238,7 @@ export class Experience {
 		this.stop();
 		window.removeEventListener('resize', this.#resize);
 		window.removeEventListener('orientationchange', this.#resize);
+		document.removeEventListener('visibilitychange', this.#resize);
 		window.removeEventListener('pointermove', this.#onPointerMove);
 		this.#assets.dispose();
 		this.#scroll.dispose();

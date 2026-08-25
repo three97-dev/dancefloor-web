@@ -6,7 +6,7 @@
  * not separate worlds.
  */
 
-import { Scene } from 'three';
+import { Scene, type Vector3 } from 'three';
 import type { QualitySettings } from './quality';
 import type { ExperienceState } from './scroll/ExperienceTimeline';
 import { AmbientSystem } from './systems/AmbientSystem';
@@ -49,16 +49,27 @@ export class World {
 		this.shell.add(loaded);
 	}
 
-	update(dt: number, state: ExperienceState) {
+	/**
+	 * Systems to skip this frame, from ?off=a,b in debug.
+	 *
+	 * A bisect handle. Frame cost in a scene this size is not obvious from draw
+	 * calls or triangle counts, and guessing at it wastes more time than
+	 * measuring it.
+	 */
+	skip = new Set<string>();
+
+	update(dt: number, state: ExperienceState, cameraPosition: Vector3) {
 		this.ambient.update(dt);
 		// Runs off elapsed time, so the world keeps operating when scroll stops.
-		this.living.update(dt, state);
-		this.dancefloor.update(state, (i, phase) => this.ambient.activityAt(i, phase));
-		this.environment.update(state);
-		this.signals.update(dt, state);
-		this.lighting.update(state);
-		this.shell.update(state);
-		this.atmosphere.update(state);
+		if (!this.skip.has('living')) this.living.update(dt, state);
+		if (!this.skip.has('tiles')) {
+			this.dancefloor.update(state, (i, phase) => this.ambient.activityAt(i, phase));
+		}
+		if (!this.skip.has('env')) this.environment.update(state);
+		if (!this.skip.has('signals')) this.signals.update(dt, state);
+		if (!this.skip.has('lighting')) this.lighting.update(state, cameraPosition);
+		if (!this.skip.has('shell')) this.shell.update(state);
+		if (!this.skip.has('atmosphere')) this.atmosphere.update(state);
 	}
 
 	dispose() {

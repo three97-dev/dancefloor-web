@@ -62,9 +62,9 @@ export class AssetManager {
 		this.#onGroup = options.onGroup;
 
 		this.#draco = new DRACOLoader();
+		// The decoder picks WASM automatically where available; setDecoderConfig
+		// is deprecated and warns on every load.
 		this.#draco.setDecoderPath(`${this.#base}/draco/`);
-		// WASM where available; the JS fallback is much slower but universal.
-		this.#draco.setDecoderConfig({ type: 'wasm' });
 
 		this.#gltf = new GLTFLoader();
 		this.#gltf.setDRACOLoader(this.#draco);

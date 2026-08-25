@@ -72,8 +72,7 @@ export class DancefloorSystem {
 			// black-plus-neon however good the lighting is.
 			color: '#333b47',
 			roughness: 0.38,
-			metalness: 0.55,
-			transparent: true
+			metalness: 0.55
 		});
 
 		patchTileShader(material);
@@ -289,8 +288,7 @@ function patchTileShader(material: MeshStandardMaterial) {
 				vec2 centred = vTileUv - 0.5;
 				float ring = 1.0 - smoothstep(0.0, 0.5, length(centred));
 				float led = vTile.x * (0.35 + ring * 0.9) + vTile.y * 0.25;
-				gl_FragColor.rgb += vTileColor * led;
-				gl_FragColor.a *= vTile.z;`
+				gl_FragColor.rgb += vTileColor * led;`
 			);
 	};
 	material.needsUpdate = true;
