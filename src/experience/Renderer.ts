@@ -25,7 +25,10 @@ export class Renderer {
 	readonly renderer: WebGLRenderer;
 	readonly isWebGL2: boolean;
 
-	constructor(canvas: HTMLCanvasElement, quality: QualitySettings) {
+	/** Small offscreen canvas used to measure frame luminance in debug. */
+	#probe: HTMLCanvasElement | null = null;
+
+	constructor(canvas: HTMLCanvasElement, quality: QualitySettings, debug = false) {
 		let renderer: WebGLRenderer;
 		try {
 			renderer = new WebGLRenderer({
@@ -35,7 +38,10 @@ export class Renderer {
 				powerPreference: 'high-performance',
 				stencil: false,
 				// Post-processing owns the depth buffer; the default target does not need it.
-				depth: true
+				depth: true,
+				// Only in debug: the luminance probe reads the canvas back, and
+				// without this the drawing buffer is undefined after compositing.
+				preserveDrawingBuffer: debug
 			});
 		} catch (cause) {
 			throw new WebGLUnavailableError(undefined, { cause });
@@ -48,9 +54,19 @@ export class Renderer {
 		renderer.outputColorSpace = SRGBColorSpace;
 		// The world should feel photographable.
 		renderer.toneMapping = ACESFilmicToneMapping;
-		renderer.toneMappingExposure = 1;
+		// ACES crushes midtones at unity, which underexposes architectural
+		// surfaces and makes the emissives look bright only by comparison. The
+		// world is supposed to be readable on its own, so it is exposed for the
+		// architecture rather than for the LEDs.
+		renderer.toneMappingExposure = 1.55;
 		renderer.shadowMap.enabled = quality.shadows;
 		renderer.info.autoReset = false;
+
+		if (debug) {
+			this.#probe = document.createElement('canvas');
+			this.#probe.width = 48;
+			this.#probe.height = 27;
+		}
 	}
 
 	setQuality(quality: QualitySettings) {
@@ -81,35 +97,35 @@ export class Renderer {
 	/**
 	 * Mean luminance of the rendered frame, 0-1.
 	 *
-	 * This exists to make the art-direction failure test measurable rather than
-	 * a matter of opinion: a frame that reads as "black background with neon
-	 * objects" has a very low mean with a few bright outliers, while a luminous
-	 * architectural environment sits far higher.
+	 * This makes the art-direction criterion measurable rather than a matter of
+	 * opinion: a frame reading as "black background with neon objects" has a very
+	 * low mean with a few bright outliers, while a luminous architectural
+	 * environment sits far higher.
 	 *
-	 * `readPixels` stalls the pipeline, so this samples three scanlines and is
-	 * only ever called from the debug overlay.
+	 * Implemented by downscaling the canvas into a small 2D context rather than
+	 * with `readPixels`. Reading the WebGL buffer after the composer has run
+	 * samples whichever render target was left bound and reports a frozen or
+	 * zero value — which looks exactly like the failure it is supposed to detect.
+	 * Requires `preserveDrawingBuffer`, so it is only available in debug.
 	 */
 	sampleLuminance(): number {
-		const gl = this.renderer.getContext();
-		const { width, height } = this.renderer.domElement;
-		if (width === 0 || height === 0) return 0;
+		if (!this.#probe) return 0;
 
-		const rows = [Math.floor(height * 0.25), Math.floor(height * 0.5), Math.floor(height * 0.75)];
-		const buffer = new Uint8Array(width * 4);
+		const source = this.renderer.domElement;
+		if (source.width === 0 || source.height === 0) return 0;
+
+		const ctx = this.#probe.getContext('2d', { willReadFrequently: true });
+		if (!ctx) return 0;
+
+		const { width, height } = this.#probe;
+		ctx.drawImage(source, 0, 0, width, height);
+		const { data } = ctx.getImageData(0, 0, width, height);
+
 		let total = 0;
-		let samples = 0;
-
-		for (const y of rows) {
-			gl.readPixels(0, y, width, 1, gl.RGBA, gl.UNSIGNED_BYTE, buffer);
-			// Stride across the row rather than reading every pixel.
-			for (let x = 0; x < width; x += 4) {
-				const o = x * 4;
-				total += (0.2126 * buffer[o] + 0.7152 * buffer[o + 1] + 0.0722 * buffer[o + 2]) / 255;
-				samples++;
-			}
+		for (let i = 0; i < data.length; i += 4) {
+			total += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255;
 		}
-
-		return samples === 0 ? 0 : total / samples;
+		return total / (data.length / 4);
 	}
 
 	dispose() {

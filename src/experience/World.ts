@@ -16,6 +16,8 @@ import { EnvironmentSystem } from './systems/EnvironmentSystem';
 import { LightingSystem } from './systems/LightingSystem';
 import { LivingEnvironmentSystem } from './systems/LivingEnvironmentSystem';
 import { SignalSystem } from './systems/SignalSystem';
+import { WorldShellSystem } from './systems/WorldShellSystem';
+import type { LoadedGroup } from './AssetManager';
 
 export class World {
 	readonly scene = new Scene();
@@ -24,6 +26,8 @@ export class World {
 	readonly environment: EnvironmentSystem;
 	readonly lighting: LightingSystem;
 	readonly atmosphere: AtmosphereSystem;
+	/** The Blender-authored architecture the Dancefloor runs through. */
+	readonly shell: WorldShellSystem;
 	readonly ambient = new AmbientSystem();
 	/** Distant activity, off-camera causality, remote responses. Scroll-independent. */
 	readonly living: LivingEnvironmentSystem;
@@ -33,10 +37,16 @@ export class World {
 		// Atmosphere first: everything else is composed inside this volume.
 		this.atmosphere = new AtmosphereSystem(this.scene, quality);
 		this.lighting = new LightingSystem(this.scene, quality);
+		this.shell = new WorldShellSystem(this.scene, quality);
 		this.dancefloor = new DancefloorSystem(this.scene, quality);
 		this.environment = new EnvironmentSystem(this.scene, quality);
 		this.signals = new SignalSystem(this.scene, quality);
 		this.living = new LivingEnvironmentSystem(quality);
+	}
+
+	/** Receives a priority group as it finishes downloading. */
+	addAssets(loaded: LoadedGroup) {
+		this.shell.add(loaded);
 	}
 
 	update(dt: number, state: ExperienceState) {
@@ -47,6 +57,7 @@ export class World {
 		this.environment.update(state);
 		this.signals.update(dt, state);
 		this.lighting.update(state);
+		this.shell.update(state);
 		this.atmosphere.update(state);
 	}
 
@@ -55,6 +66,7 @@ export class World {
 		this.signals.dispose();
 		this.environment.dispose();
 		this.lighting.dispose();
+		this.shell.dispose();
 		this.atmosphere.dispose();
 	}
 }

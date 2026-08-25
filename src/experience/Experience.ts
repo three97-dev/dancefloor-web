@@ -5,6 +5,7 @@
  * downstream reads from a single normalized progress value.
  */
 
+import { AssetManager } from './AssetManager';
 import { CameraController } from './camera/CameraController';
 import { PerformanceManager } from './PerformanceManager';
 import { chooseQuality, probeGpu, type QualitySettings } from './quality';
@@ -19,6 +20,10 @@ export interface ExperienceOptions {
 	canvas: HTMLCanvasElement;
 	/** ?lighting=1 — bloom/fog/grain off, to prove the lighting stands alone. */
 	lightingQA?: boolean;
+	/** Base path, so assets resolve when the site is served from a subpath. */
+	base?: string;
+	/** Enables the luminance probe, which needs a preserved drawing buffer. */
+	debug?: boolean;
 	/** Called each frame with the derived state, for the debug overlay. */
 	onState?: (state: ExperienceState, stats: ExperienceStats) => void;
 }
@@ -30,6 +35,7 @@ export class Experience {
 	#scroll: ScrollController;
 	#post: PostProcessingSystem;
 	#performance: PerformanceManager;
+	#assets: AssetManager;
 
 	#view: ViewportState;
 	#quality: QualitySettings;
@@ -47,7 +53,7 @@ export class Experience {
 		this.#quality = chooseQuality(this.#view, probeGpu());
 		this.#onState = options.onState;
 
-		this.#renderer = new Renderer(options.canvas, this.#quality);
+		this.#renderer = new Renderer(options.canvas, this.#quality, options.debug ?? false);
 		this.#world = new World(this.#quality);
 		this.#camera = new CameraController(this.#view);
 		this.#post = new PostProcessingSystem(
@@ -70,7 +76,20 @@ export class Experience {
 			this.#quality = q;
 			this.#renderer.setQuality(q);
 			this.#post.setSize(this.#view.width, this.#view.height, q.pixelRatio);
+			// Reduce complexity, never the art direction: colour and primary
+			// architecture survive every tier.
+			this.#world.shell.setComplexity(q.tier === 'LOW' ? 0.2 : q.tier === 'MEDIUM' ? 0.6 : 1);
 		});
+
+		// The world arrives progressively. The experience is already running by
+		// the time the first group lands, so nothing here blocks the first frame.
+		this.#assets = new AssetManager({
+			base: options.base ?? '',
+			// Far silhouettes are pure scale; a LOW-tier device should not pay for them.
+			skip: this.#quality.tier === 'LOW' ? ['far'] : [],
+			onGroup: (loaded) => this.#world.addAssets(loaded)
+		});
+		void this.#assets.loadAll();
 
 		this.#resize();
 		window.addEventListener('resize', this.#resize);
@@ -152,6 +171,7 @@ export class Experience {
 			drawCalls: info.render.calls,
 			triangles: info.render.triangles,
 			ambientEvents: this.#world.living.events.length,
+			assets: this.#assets.loaded.join(',') || 'none',
 			viewport: this.#view.viewport,
 			anchor: this.#camera.nearestAnchor(this.#state.progress).anchor,
 			luminance: this.#luminance,
@@ -188,6 +208,7 @@ export class Experience {
 		window.removeEventListener('resize', this.#resize);
 		window.removeEventListener('orientationchange', this.#resize);
 		window.removeEventListener('pointermove', this.#onPointerMove);
+		this.#assets.dispose();
 		this.#scroll.dispose();
 		this.#post.dispose();
 		this.#world.dispose();
@@ -202,6 +223,7 @@ export interface ExperienceStats {
 	drawCalls: number;
 	triangles: number;
 	ambientEvents: number;
+	assets: string;
 	viewport: string;
 	anchor: string;
 	/** Mean luminance of the rendered frame, 0-1. The art-direction check. */

@@ -39,12 +39,12 @@ export class LightingSystem {
 	constructor(scene: Scene, quality: QualitySettings) {
 		// Sky/ground hemisphere carries the ambient colour field, which is the
 		// 35-45% of the frame that should read as coloured environment.
-		this.#hemi = new HemisphereLight('#3a4a9e', '#241a3d', 1.5);
+		this.#hemi = new HemisphereLight('#3a4a9e', '#241a3d', 2.4);
 		scene.add(this.#hemi);
 
 		// Deliberately not zero: this is what keeps shadowed architecture legible
 		// and stops the frame resolving as black-plus-neon.
-		this.#ambient = new AmbientLight('#2b3566', 0.85);
+		this.#ambient = new AmbientLight('#2b3566', 1.3);
 		scene.add(this.#ambient);
 
 		this.#key = new DirectionalLight('#31e0f0', 1.5);
@@ -85,7 +85,9 @@ export class LightingSystem {
 
 		// Ambient and hemisphere follow the territory, so the whole frame shifts
 		// colour with the act rather than only the emissive elements.
-		this.#hemi.color.copy(t.haze);
+		// Sky term takes the haze lifted toward the key, so upward-facing surfaces
+		// pick up the environment rather than falling to the ambient floor.
+		this.#hemi.color.copy(t.haze).lerp(t.key, 0.3);
 		this.#hemi.groundColor.copy(t.shadow);
 		this.#ambient.color.copy(t.ambient).lerp(t.haze, 0.45);
 
@@ -95,8 +97,8 @@ export class LightingSystem {
 
 		// The city reveal is the most luminous state; the observatory is calmer.
 		const lift = 1 + state.city * 0.5 - state.alignment * 0.12;
-		this.#hemi.intensity = 1.5 * lift;
-		this.#ambient.intensity = 0.85 * lift;
+		this.#hemi.intensity = 2.4 * lift;
+		this.#ambient.intensity = 1.3 * lift;
 		this.#key.intensity = 1.5 * lift;
 		this.#counter.intensity = 0.9 * lift;
 

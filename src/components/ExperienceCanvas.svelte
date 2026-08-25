@@ -36,6 +36,10 @@
 			experience = new Experience({
 				canvas,
 				lightingQA: params.get('lighting') === '1',
+				// Read from the URL rather than the prop: child components mount
+				// before their parent, so the prop is still false at this point.
+				debug: params.get('debug') === '1',
+				base,
 				onState: (next, s) => {
 					if (!debug) return;
 					snapshot = next;
@@ -96,6 +100,7 @@
 		<div><b>tier / dpr</b> {stats?.tier ?? '-'} / {stats?.pixelRatio.toFixed(2) ?? '-'}</div>
 		<div><b>draws / tris</b> {stats?.drawCalls ?? 0} / {((stats?.triangles ?? 0) / 1000).toFixed(0)}k</div>
 		<div><b>ambient events</b> {stats?.ambientEvents ?? 0}</div>
+		<div><b>world</b> {stats?.assets ?? '-'}</div>
 		<div class:warn={(stats?.luminance ?? 0) < 0.12}>
 			<b>luminance</b> {((stats?.luminance ?? 0) * 100).toFixed(1)}%{(stats?.luminance ?? 0) < 0.12 ? ' — too dark' : ''}
 		</div>

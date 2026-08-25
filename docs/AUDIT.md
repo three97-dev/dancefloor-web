@@ -481,3 +481,81 @@ state rather than sitting out the most luminous moment of the site.
   geometry to land.
 - Product surfaces, the three questions, FAQ scroll handoff, final 3×3
   resolution, 8 of 11 QA viewports.
+
+---
+
+## 12. The world reaches the browser
+
+The gap flagged in §11.6 is closed: `WORLD_SHELL` now renders in the runtime.
+
+### 12.1 Pipeline
+
+Blender exports four GLBs split by the brief's load priority, Draco-compressed:
+
+| Group | Contents | Size | Tris |
+| --- | --- | --- | --- |
+| `core` | floor, wall masses, columns, mid terraces | 16.6 KB | 3,324 |
+| `upper` | upper environment, translucent masses, light structures, openings, shafts | 10.5 KB | 1,500 |
+| `landmarks` | Spine, Bridge, Beacon, Glass Wall, Observatory | 11.8 KB | 1,356 |
+| `far` | background towers, distant platforms, far geometry | 9.0 KB | 864 |
+
+**47.8 KB total.** `AssetManager` loads them sequentially rather than in
+parallel, so a far-geometry request cannot compete for bandwidth with the
+architecture the first frame needs. LOW-tier devices skip `far` entirely.
+
+`WorldShellSystem` replaces the greybox clay on arrival with medium-value runtime
+materials that track the act's colour territory — shipping the authoring clay
+would put flat grey boxes in a luminous world.
+
+Cost: **52 draw calls, 72k triangles, 75 FPS.**
+
+### 12.2 Three real bugs found by measuring
+
+**The luminance probe was lying, twice.** It reported a flat `0.0%` and then a
+frozen `10.0%` across every act. Both were the measurement, not the scene:
+`readPixels` after `EffectComposer` samples whichever render target the composer
+left bound. Replaced with a downscale of the canvas into a small 2D context,
+which needs `preserveDrawingBuffer` and is therefore debug-only.
+
+**Then it reported `0.0%` again** — because `debug` was passed as a component
+prop, and in Svelte a child mounts before its parent, so the flag was still
+`false` when the renderer was constructed. Now read straight from the URL.
+
+**The world was underexposed.** ACES at unity exposure crushes midtones, which
+makes emissives look bright only by comparison — precisely what §22 forbids.
+Exposure is now 1.55, and the shell receives shadow but no longer casts it: one
+directional light in a 200 m hall throws the interior into near-total shadow and
+crushes exactly the surfaces that must stay readable.
+
+### 12.3 Where it stands
+
+Mean frame luminance, measured:
+
+| Section | Act | Luminance |
+| --- | --- | --- |
+| `#hero` | Field at rest | 13.1% |
+| `#problem` | Fracture | 9.5% |
+| `#road` | The Patch | 12.1% |
+| `#guidance` | The Rise | **3.9%** |
+| `#capture` | Return path | **4.6%** |
+| `#model` | One Plane | 12.9% |
+| `#close` | The City | **18.7%** |
+
+The City is the most luminous state of the site, as specified. The scroll mapping
+also verifies exactly: every section centres on its declared span to four
+decimals.
+
+### 12.4 Two acts still fail
+
+- **Guidance, 3.9%.** The violet canyon has no architecture of its own yet. The
+  act needs routes that illuminate and structure that physically rises — until
+  that exists the camera is aiming down a corridor that is mostly not there.
+- **Return path, 4.6%.** §39 wants the underfloor among the *richest* colour
+  environments and §40 lists what it is made of: huge structural supports,
+  transparent conduits, rails, repeating structural bays, vertical shafts,
+  distant bridges. The runtime has eighteen cylinders and a scatter of luminous
+  junctions. Adding more junction dots does not fix a missing environment — this
+  is Blender work, and it belongs in `WORLD_SHELL` alongside everything else.
+
+Both are environmental, not tuning. They are the next piece of world-building
+rather than a lighting adjustment.
