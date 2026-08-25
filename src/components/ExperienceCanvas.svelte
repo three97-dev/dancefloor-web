@@ -7,6 +7,7 @@
 	 * narrative scrolls over a world that never unmounts.
 	 */
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import { Experience, WebGLUnavailableError, type ExperienceState } from '$experience/Experience';
 
 	interface Props {
@@ -71,8 +72,8 @@
 
 {#if failed}
 	<picture class="fallback" aria-hidden="true">
-		<source media="(max-width: 767px)" srcset="/fallback/act-{fallbackAct}-mobile.jpg" />
-		<img src="/fallback/act-{fallbackAct}.jpg" alt="" decoding="async" />
+		<source media="(max-width: 767px)" srcset="{base}/fallback/act-{fallbackAct}-mobile.jpg" />
+		<img src="{base}/fallback/act-{fallbackAct}.jpg" alt="" decoding="async" />
 	</picture>
 {/if}
 

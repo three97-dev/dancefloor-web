@@ -4,6 +4,7 @@
 	 * drawer on white. The ambient world stays faintly visible underneath, and
 	 * strong camera movement pauses while the menu is open.
 	 */
+	import { base } from '$app/paths';
 	import { NAV } from '$content/site';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
@@ -36,10 +37,10 @@
 	>
 		<nav>
 			{#each NAV.primary as link (link.href)}
-				<a href={link.href} onclick={() => (open = false)}>{link.label}</a>
+				<a href="{base}{link.href}" onclick={() => (open = false)}>{link.label}</a>
 			{/each}
 		</nav>
-		<a class="cta" href={NAV.cta.href} data-event="cta_demo_nav" onclick={() => (open = false)}>
+		<a class="cta" href="{base}{NAV.cta.href}" data-event="cta_demo_nav" onclick={() => (open = false)}>
 			{NAV.cta.label}
 		</a>
 	</div>

@@ -6,6 +6,7 @@
 	 *
 	 * All labels come from $content/site — never duplicated here.
 	 */
+	import { base } from '$app/paths';
 	import { NAV } from '$content/site';
 	import MobileMenu from './MobileMenu.svelte';
 
@@ -20,7 +21,7 @@
 <svelte:window onscroll={onScroll} />
 
 <header class="nav" class:scrolled>
-	<a class="mark" href="/" aria-label="Dancefloor home">
+	<a class="mark" href="{base}/" aria-label="Dancefloor home">
 		<!-- Nine modules resolving into the 3x3 mark. -->
 		<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
 			{#each [0, 1, 2] as r (r)}
@@ -42,11 +43,11 @@
 
 	<nav class="links" aria-label="Primary">
 		{#each NAV.primary as link (link.href)}
-			<a href={link.href}>{link.label}</a>
+			<a href="{base}{link.href}">{link.label}</a>
 		{/each}
 	</nav>
 
-	<a class="cta" href={NAV.cta.href} data-event="cta_demo_nav">{NAV.cta.label}</a>
+	<a class="cta" href="{base}{NAV.cta.href}" data-event="cta_demo_nav">{NAV.cta.label}</a>
 
 	<button
 		class="menu-trigger"

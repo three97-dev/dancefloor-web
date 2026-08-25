@@ -5,6 +5,7 @@
 	 * the persistent canvas keeps running behind ordinary semantic content.
 	 */
 	import { isPending, type Prose } from '$content/types';
+	import { base } from '$app/paths';
 	import { NAV, SITE } from '$content/site';
 
 	interface Props {
@@ -39,7 +40,7 @@
 	{/if}
 
 	{#if cta}
-		<a class="cta" href={NAV.cta.href} data-event="cta_demo_mid">{NAV.cta.label}</a>
+		<a class="cta" href="{base}{NAV.cta.href}" data-event="cta_demo_mid">{NAV.cta.label}</a>
 	{/if}
 </article>
 

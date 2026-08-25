@@ -1,0 +1,11 @@
+# This deployment is a work-in-progress preview, not the launch site.
+#
+# The copy is incomplete (most body prose is still pending) and the content
+# architecture flags unresolved claims — the pricing contradiction and an
+# unsourced statistic among them. Indexing it now would put those in front of
+# search engines and answer engines before anyone has signed off on them.
+#
+# At launch, replace this file with the real rules and set VITE_INDEXABLE=true
+# so the noindex meta tag stops being emitted.
+User-agent: *
+Disallow: /

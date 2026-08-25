@@ -4,6 +4,7 @@
 	 * The camera has settled and the world recedes, but keeps running behind
 	 * this quiet, ordinary, accessible HTML.
 	 */
+	import { base } from '$app/paths';
 	import { NAV, ROUTES, SITE } from '$content/site';
 
 	const platform = ROUTES.filter((r) => r.path.startsWith('/platform'));
@@ -21,31 +22,46 @@
 		<nav aria-label="Platform">
 			<h2>Platform</h2>
 			{#each platform as route (route.path)}
-				<a href={route.path}>{route.h1}</a>
+				<a href="{base}{route.path}">{route.h1}</a>
 			{/each}
 		</nav>
 
 		<nav aria-label="Resources">
 			<h2>Resources</h2>
 			{#each resources as route (route.path)}
-				<a href={route.path}>{route.h1}</a>
+				<a href="{base}{route.path}">{route.h1}</a>
 			{/each}
 		</nav>
 
 		<nav aria-label="Company">
 			<h2>Company</h2>
 			{#each company as route (route.path)}
-				<a href={route.path}>{route.h1}</a>
+				<a href="{base}{route.path}">{route.h1}</a>
 			{/each}
-			<a href={NAV.cta.href}>{NAV.cta.label}</a>
+			<a href="{base}{NAV.cta.href}">{NAV.cta.label}</a>
 		</nav>
 
-		<form class="capture" method="POST" action="/?/capture">
+		<!--
+			Email capture. The content architecture specifies that conversions fire
+			on server-action success rather than on click, so this needs a backend.
+			The static build has none, so the field is disabled rather than
+			pretending to accept an address it would silently drop.
+		-->
+		<form class="capture" method="POST" action="/?/capture" aria-describedby="capture-note">
 			<h2><label for="email">Stay in the loop</label></h2>
 			<div class="row">
-				<input id="email" name="email" type="email" autocomplete="email" required placeholder="you@company.com" />
-				<button type="submit" data-event="cta_email_footer">Submit</button>
+				<input
+					id="email"
+					name="email"
+					type="email"
+					autocomplete="email"
+					required
+					placeholder="you@company.com"
+					disabled
+				/>
+				<button type="submit" data-event="cta_email_footer" disabled>Submit</button>
 			</div>
+			<p id="capture-note" class="note">Email capture is not connected yet.</p>
 		</form>
 	</div>
 
@@ -129,6 +145,18 @@
 		font: inherit;
 		font-size: 0.9375rem;
 		cursor: pointer;
+	}
+
+	.note {
+		margin: 0.6rem 0 0;
+		font-size: 0.8125rem;
+		color: var(--text-dim);
+	}
+
+	input:disabled,
+	button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
 	}
 
 	.legal {
